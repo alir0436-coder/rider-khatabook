@@ -1570,7 +1570,7 @@
             </div>
             <div>
               <h3 class="font-luxury font-bold text-sm sm:text-base text-slate-900">Loans</h3>
-              <p class="text-[10px] text-slate-500">No accounts added yet</p>
+              <p id="ldAccountsCountSubtitle" class="text-[10px] text-slate-500">3 Active Accounts</p>
             </div>
           </div>
           <button type="button" onclick="exportSelectedPersonPDF()" class="bg-[#1c130e] hover:bg-[#2e1f16] text-[#fef3c7] text-xs font-bold px-3 py-1.5 rounded-xl shadow-xs flex items-center space-x-1.5 transition">
@@ -1582,23 +1582,23 @@
         <!-- Net Position / Net Summary Card (At a Glance Net Status) -->
         <div id="ldNetPositionHeroCard" class="card-espresso p-4 text-white relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
           <div class="flex items-center space-x-3">
-            <div id="ldNetHeroIcon" class="w-11 h-11 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 flex items-center justify-center text-xl font-bold flex-shrink-0">
+            <div id="ldNetHeroIcon" class="w-11 h-11 rounded-2xl bg-rose-500/20 border border-rose-500/40 text-rose-300 flex items-center justify-center text-xl font-bold flex-shrink-0">
               ⚖️
             </div>
             <div>
               <div class="flex items-center space-x-2">
                 <span class="text-[10px] uppercase font-bold tracking-widest text-amber-200">Overall Net Position</span>
-                <span id="ldNetStatusBadge" class="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Receivable (Due)</span>
+                <span id="ldNetStatusBadge" class="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">Payable (Owed)</span>
               </div>
               <div class="mt-0.5 flex items-baseline">
-                <span id="ldNetTotalAmount" class="font-luxury text-2xl sm:text-3xl font-extrabold text-[#fef3c7]">+410.00</span>
+                <span id="ldNetTotalAmount" class="font-luxury text-2xl sm:text-3xl font-extrabold text-[#fef3c7]">-9,090.00</span>
                 <span class="text-xs font-bold text-amber-400 ml-1.5">AED</span>
               </div>
             </div>
           </div>
           <div class="text-xs text-amber-200/90 sm:text-right font-medium">
-            <div id="ldNetBreakdownText">Receivables: 410.00 AED − Payables: 0.00 AED</div>
-            <div id="ldNetVerdictText" class="text-[10px] text-amber-300 font-bold mt-0.5">Net Result: 410.00 AED Receivable (+)</div>
+            <div id="ldNetBreakdownText">Receivables: 410.00 AED − Payables: 9,500.00 AED</div>
+            <div id="ldNetVerdictText" class="text-[10px] text-rose-300 font-bold mt-0.5">Net Result: 9,090.00 AED Payable (−)</div>
           </div>
         </div>
 
@@ -1623,7 +1623,7 @@
           <div class="card-cream p-2.5 border-rose-200 bg-rose-50/20">
             <div class="text-[9px] text-rose-800 uppercase font-bold">Total Payable (Owed)</div>
             <div class="mt-1 font-luxury font-black text-base text-rose-800">
-              <span id="sheetLdTotalDene">0.00</span> <span class="text-[9px] text-slate-400 font-normal">AED</span>
+              <span id="sheetLdTotalDene">9500.00</span> <span class="text-[9px] text-slate-400 font-normal">AED</span>
             </div>
             <div class="text-[8px] text-rose-600 mt-0.5">Payables</div>
           </div>
@@ -5536,10 +5536,17 @@ create policy "Allow public all" on public."RiderKhatabook"
       const visaSummary = AccountingEngine.getVisaLoanSummary();
       const ldSummary = AccountingEngine.getLenDenSummary();
 
-      const rrDebt = rentSummary.outstanding;
-      const fhDebt = visaSummary.remainingDebt;
-      const totalKulLene = ldSummary.totalReceivable;
-      const totalKulDene = ldSummary.totalPayable;
+      const rrDebt = Math.max(0, rentSummary.outstanding || 0);
+      const rrAdvance = rentSummary.outstanding < 0 ? Math.abs(rentSummary.outstanding) : 0;
+      const fhDebt = visaSummary.remainingDebt || 0;
+      const totalKulLene = ldSummary.totalReceivable + rrAdvance;
+      const totalKulDene = ldSummary.totalPayable + fhDebt + rrDebt;
+
+      const subEl = document.getElementById("ldAccountsCountSubtitle");
+      if (subEl) {
+        const count = Object.keys(appState.persons || {}).length;
+        subEl.textContent = count > 0 ? (count + " Active Accounts") : "No accounts added yet";
+      }
 
       const sRr = document.getElementById("sheetLdRoomRentBaqaya");
       if (sRr) {
