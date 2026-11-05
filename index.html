@@ -2637,7 +2637,7 @@
           <span class="text-amber-800">→</span>
         </button>
 
-        <button type="button" onclick="downloadUpdatedHtmlApp(); closeModal('modalSettingsTools');" class="w-full text-left p-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-950 font-bold border border-emerald-200 flex items-center justify-between transition">
+        <button id="settingsDownloadHtmlBtn" type="button" onclick="downloadUpdatedHtmlApp(); closeModal('modalSettingsTools');" class="w-full text-left p-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-950 font-bold border border-emerald-200 flex items-center justify-between transition hidden">
           <div class="flex items-center space-x-2.5">
             <span class="text-lg">💾</span>
             <div>
@@ -2648,7 +2648,7 @@
           <span class="text-emerald-800">→</span>
         </button>
 
-        <button type="button" onclick="closeModal('modalSettingsTools'); openSupabaseModal();" class="w-full text-left p-3 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-950 font-bold border border-blue-200 flex items-center justify-between transition">
+        <button id="settingsSupabaseBtn" type="button" onclick="closeModal('modalSettingsTools'); openSupabaseModal();" class="w-full text-left p-3 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-950 font-bold border border-blue-200 flex items-center justify-between transition hidden">
           <div class="flex items-center space-x-2.5">
             <span class="text-lg">☁️</span>
             <div>
@@ -4122,6 +4122,10 @@ create policy "Allow public all" on public."RiderKhatabook"
     }
 
     function openSupabaseModal() {
+      if (!isSuperAdmin()) {
+        showToast("⚠️ Restricted: Database configuration is restricted to Super Admin only.", "error");
+        return;
+      }
       const errBox = document.getElementById("sbDiagErrorBox");
       const errMsg = document.getElementById("sbDiagErrorText");
       if (lastSyncError) {
@@ -8183,6 +8187,10 @@ function applyCustomOrderCycle() {
     }
 
     function downloadUpdatedHtmlApp() {
+      if (!isSuperAdmin()) {
+        showToast("⚠️ Restricted: Source code download is restricted to Super Admin only.", "error");
+        return;
+      }
       try {
         saveToStorage(false);
         const fullHtml = getUpdatedFullHtml();
@@ -8821,7 +8829,11 @@ function applyCustomOrderCycle() {
       if (btnText) btnText.textContent = "Sending Reset Link...";
 
       try {
-        const redirectUrl = window.location.href.split("#")[0];
+        let redirectUrl = window.location.href.split("#")[0];
+        // If running on phone locally (file:// or content://), automatically redirect to live Vercel app:
+        if (!redirectUrl.startsWith("http://") && !redirectUrl.startsWith("https://")) {
+          redirectUrl = "https://rider-khatabook.vercel.app/";
+        }
         const { data, error } = await sbClient.auth.resetPasswordForEmail(email, {
           redirectTo: redirectUrl
         });
@@ -8970,6 +8982,10 @@ function applyCustomOrderCycle() {
       if (settingsAdminBtn) settingsAdminBtn.classList.toggle("hidden", !adminActive);
       const settingsRestoreBtn = document.getElementById("settingsRestoreMasterBtn");
       if (settingsRestoreBtn) settingsRestoreBtn.classList.toggle("hidden", !adminActive);
+      const settingsDownloadBtn = document.getElementById("settingsDownloadHtmlBtn");
+      if (settingsDownloadBtn) settingsDownloadBtn.classList.toggle("hidden", !adminActive);
+      const settingsSbBtn = document.getElementById("settingsSupabaseBtn");
+      if (settingsSbBtn) settingsSbBtn.classList.toggle("hidden", !adminActive);
 
       if (currentUser && currentUser.email) {
         const e = currentUser.email;
