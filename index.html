@@ -236,7 +236,7 @@
       color: var(--text-main);
       touch-action: manipulation;
       -webkit-tap-highlight-color: transparent;
-      overscroll-behavior-y: contain;
+      overscroll-behavior-y: auto;
       transition: background-color 0.25s ease, color 0.25s ease;
     }
 
@@ -787,7 +787,7 @@
           </div>
         </div>
 
-        <div id="gateFieldCompany" class="hidden">
+        <div id="gateFieldCompany" class="hidden space-y-2">
           <div class="auth-input-wrap">
             <span class="auth-input-icon-left">
               <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -800,6 +800,17 @@
               <option value="Noon" class="bg-[#18110b] text-white">Noon Food / Minutes</option>
               <option value="Careem" class="bg-[#18110b] text-white">Careem Box / Food</option>
               <option value="Other" class="bg-[#18110b] text-white">Other Courier / Private</option>
+            </select>
+          </div>
+
+          <div class="auth-input-wrap">
+            <span class="auth-input-icon-left text-sm">💰</span>
+            <select id="gateInputCurrency" class="w-full">
+              <option value="AED" class="bg-[#18110b] text-white" selected>🇦🇪 AED (UAE Dirham)</option>
+              <option value="PKR" class="bg-[#18110b] text-white">🇵🇰 PKR (Pakistani Rupee)</option>
+              <option value="INR" class="bg-[#18110b] text-white">🇮🇳 INR (Indian Rupee)</option>
+              <option value="SAR" class="bg-[#18110b] text-white">🇸🇦 SAR (Saudi Riyal)</option>
+              <option value="USD" class="bg-[#18110b] text-white">🇺🇸 USD (US Dollar)</option>
             </select>
           </div>
         </div>
@@ -903,7 +914,15 @@
     </div>
   </div>
 
-  <!-- ================= TOP LUXURY HEADER ================= -->
+  <!-- ================= MOBILE LUXURY PULL-TO-REFRESH CLOUD SYNC INDICATOR ================= -->
+  <div id="pullToRefreshIndicator" class="fixed top-0 left-0 right-0 z-50 flex items-center justify-center pointer-events-none transition-all duration-200 opacity-0" style="transform: translateY(-100%);">
+    <div class="px-4 py-2 rounded-full bg-[#1c130e]/95 border border-amber-500/40 shadow-2xl flex items-center space-x-2 text-xs font-bold text-amber-200 backdrop-blur-md">
+      <span id="pullRefreshIcon" class="inline-block transition-transform duration-150 text-sm">⬇️</span>
+      <span id="pullRefreshText">Pull down to sync...</span>
+    </div>
+  </div>
+
+    <!-- ================= TOP LUXURY HEADER ================= -->
   <header id="appHeader" class="sticky top-0 z-30 transition-all">
     <div class="max-w-2xl mx-auto px-3 sm:px-4 py-2.5 flex items-center justify-between">
       
@@ -920,7 +939,7 @@
             </h1>
           </div>
           <div class="flex items-center space-x-1.5 mt-0.5">
-            <button type="button" onclick="manualSyncNow()" class="px-2 py-0.5 rounded-full bg-black/40 hover:bg-black/60 border border-emerald-500/40 text-[9px] text-emerald-300 font-bold flex items-center space-x-1 transition active:scale-95 shadow-2xs" title="Tap to sync with Supabase Cloud immediately">
+            <button id="headerSyncBtn" type="button" onclick="manualSyncNow()" class="hidden px-2 py-0.5 rounded-full bg-black/40 hover:bg-black/60 border border-emerald-500/40 text-[9px] text-emerald-300 font-bold flex items-center space-x-1 transition active:scale-95 shadow-2xs" title="Tap to sync with Supabase Cloud immediately">
               <span id="syncDot" class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse mr-1"></span>
               <span id="headerSyncStatusBadge" class="text-emerald-300 font-semibold cursor-pointer">All Khatas Synced</span>
               <span class="text-amber-300 font-bold text-[8px]">🔄</span>
@@ -942,11 +961,11 @@
           <span id="lblZoomLevel" onclick="resetZoom()" class="text-[10px] font-mono text-amber-200 font-bold px-1.5 cursor-pointer" title="Reset Zoom">100%</span>
           <button id="btnZoomIn" onclick="changeZoom(0.1)" class="w-6 h-6 rounded-lg hover:bg-white/20 text-amber-200 font-extrabold flex items-center justify-center text-xs active:scale-90 transition" title="Zoom In">+</button>
         </div>
-        <!-- Circular Khata Card / Avatar Button directly opposite to Khata Book Title -->
-        <button id="btnHeaderAuth" type="button" onclick="openKhataManagerModal()" class="w-9 h-9 rounded-full bg-gradient-to-tr from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-amber-100 border border-amber-400/50 flex items-center justify-center text-sm font-bold shadow-md transition active:scale-90 cursor-pointer" title="Active Khata (Tap to switch)">
-          <span id="headerUserIcon">📁</span>
-          <span id="headerUserLabel" class="hidden">My Khatas</span>
-        </button>
+        <!-- Hidden Compatibility Stubs for Header Auth -->
+        <div class="hidden" aria-hidden="true">
+          <span id="headerUserIcon"></span>
+          <span id="headerUserLabel"></span>
+        </div>
         <span id="headerTotalEntriesBadge"<span id="headerTotalEntriesBadge" class="hidden">29 Entries</span>
       </div>
 
@@ -1062,12 +1081,12 @@
           <div class="py-1 relative z-10">
             <div id="heroCashSubtitle" class="hidden"></div>
             <div class="mt-0.5 flex items-baseline">
-              <span id="kpiNetBachat" class="font-luxury text-3xl sm:text-4xl font-extrabold tracking-tight text-[#fef3c7]">60.00</span>
-              <span class="text-xs font-bold text-amber-400 ml-1.5">AED</span>
+              <span id="kpiNetBachat" class="font-luxury text-3xl sm:text-4xl font-extrabold tracking-tight text-[#fef3c7]">0.00</span>
+              <span class="app-currency-label text-xs font-bold text-amber-400 ml-1.5">AED</span>
             </div>
             <div class="text-[10px] text-amber-300/80 mt-0.5 flex items-center space-x-2">
               <span>Recorded Cash Balance:</span>
-              <span id="kpiBalance" class="font-mono font-bold text-amber-100">60.00 AED</span>
+              <span id="kpiBalance" class="font-mono font-bold text-amber-100">0.00 <span class="app-currency-label">AED</span></span>
             </div>
           </div>
         </section>
@@ -1083,7 +1102,7 @@
             </div>
             <div class="mt-1.5 flex items-baseline">
               <span id="kpiTotalIn" class="font-luxury text-xl sm:text-2xl font-black text-emerald-800">3,700.00</span>
-              <span class="text-[11px] font-bold text-slate-400 ml-1">AED</span>
+              <span class="app-currency-label text-[11px] font-bold text-slate-400 ml-1">AED</span>
             </div>
           </div>
 
@@ -1095,7 +1114,7 @@
             </div>
             <div class="mt-1 flex items-baseline">
               <span id="kpiTotalOut" class="font-luxury text-xl sm:text-2xl font-black text-rose-800">3,740.00</span>
-              <span class="text-[11px] font-bold text-slate-400 ml-1">AED</span>
+              <span class="app-currency-label text-[11px] font-bold text-slate-400 ml-1">AED</span>
             </div>
             
           </div>
@@ -1113,9 +1132,9 @@
             </div>
             <div class="mt-1 flex items-baseline">
               <span id="kpiMonthlySalary" class="font-luxury text-xl sm:text-2xl font-black text-emerald-900">3,700.00</span>
-              <span class="text-[10px] font-bold text-slate-400 ml-1">AED</span>
+              <span class="app-currency-label text-[10px] font-bold text-slate-400 ml-1">AED</span>
             </div>
-            <div id="kpiMonthlySalarySub" class="text-[9px] text-emerald-700 font-medium mt-0.5 truncate">Salary: 0.00 + Incentive: 0.00 AED</div>
+            <div id="kpiMonthlySalarySub" class="text-[9px] text-emerald-700 font-medium mt-0.5 truncate">Salary: 0.00 + Incentive: 0.00 <span class="app-currency-label">AED</span></div>
           </div>
 
           <!-- Remittance Summary -->
@@ -1123,7 +1142,7 @@
             <div class="text-[10px] font-bold text-purple-950 uppercase tracking-wide">Family Remittance</div>
             <div class="mt-1 flex items-baseline">
               <span id="kpiHomeSend" class="font-luxury text-xl sm:text-2xl font-black text-purple-900">570.00</span>
-              <span class="text-[10px] font-bold text-slate-400 ml-1">AED</span>
+              <span class="app-currency-label text-[10px] font-bold text-slate-400 ml-1">AED</span>
             </div>
             <div id="kpiHomeSendSub" class="text-[9px] text-purple-700 mt-0.5 truncate">Live remittance records</div>
           </div>
@@ -1154,7 +1173,7 @@
           <!-- Highlight Total Display -->
           <div class="flex items-baseline justify-between px-1">
             <span class="text-[10px] text-[#786555] uppercase font-bold tracking-wider">Filtered Month Volume:</span>
-            <span id="chartHighlightVal" class="font-luxury text-xl font-black text-[#b45309]">3800.00 AED</span>
+            <span id="chartHighlightVal" class="font-luxury text-xl font-black text-[#b45309]">0.00 <span class="app-currency-label">AED</span></span>
           </div>
 
           <!-- Dynamic SVG Wave Chart Container -->
@@ -1241,7 +1260,7 @@
               </div>
               <div class="flex items-baseline">
                 <span id="dashRozanaKharchaTotal" class="font-luxury text-2xl sm:text-3xl font-black text-rose-700">1730.00</span>
-                <span class="text-xs font-bold text-rose-800 ml-1">AED</span>
+                <span class="app-currency-label text-xs font-bold text-rose-800 ml-1">AED</span>
               </div>
             </div>
 
@@ -1251,7 +1270,7 @@
               <div class="bg-white/85 p-2 rounded-xl border border-[#ebdccb] text-center shadow-2xs">
                 <div class="text-[9px] text-amber-900 font-bold uppercase truncate">🍔 Food &amp; Tea</div>
                 <div class="mt-1 font-luxury font-black text-sm text-slate-900">
-                  <span id="dashFoodSum">200.00</span> <span class="text-[8px] text-slate-400 font-normal">AED</span>
+                  <span id="dashFoodSum">200.00</span> <span class="app-currency-label text-[8px] text-slate-400 font-normal">AED</span>
                 </div>
               </div>
 
@@ -1259,7 +1278,7 @@
               <div class="bg-white/85 p-2 rounded-xl border border-[#ebdccb] text-center shadow-2xs">
                 <div class="text-[9px] text-blue-900 font-bold uppercase truncate">⛽ Bike Fuel</div>
                 <div class="mt-1 font-luxury font-black text-sm text-slate-900">
-                  <span id="dashPetrolSum">400.00</span> <span class="text-[8px] text-slate-400 font-normal">AED</span>
+                  <span id="dashPetrolSum">400.00</span> <span class="app-currency-label text-[8px] text-slate-400 font-normal">AED</span>
                 </div>
               </div>
 
@@ -1267,7 +1286,7 @@
               <div class="bg-white/85 p-2 rounded-xl border border-[#ebdccb] text-center shadow-2xs">
                 <div class="text-[9px] text-slate-700 font-bold uppercase truncate">📱 Other Exp</div>
                 <div class="mt-1 font-luxury font-black text-sm text-slate-900">
-                  <span id="dashOtherSum">1130.00</span> <span class="text-[8px] text-slate-400 font-normal">AED</span>
+                  <span id="dashOtherSum">1130.00</span> <span class="app-currency-label text-[8px] text-slate-400 font-normal">AED</span>
                 </div>
               </div>
             </div>
@@ -1278,42 +1297,12 @@
           <span id="dashRentSum" class="hidden">500.00</span>
 
           <!-- Itemized List for Filtered Date -->
-          <div id="dashExpEntriesContainer" class="bg-[#faf6f0] p-3 rounded-2xl border border-[#ebdccb] space-y-1.5 text-xs">
+          <div id="dashExpEntriesContainer" class="hidden bg-[#faf6f0] p-3 rounded-2xl border border-[#ebdccb] space-y-1.5 text-xs">
             <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wide border-b border-[#e9dfcf] pb-1 flex items-center justify-between">
-              <span>Entries on <span id="dashExpListDate" class="text-slate-800 font-mono">2026-11-04</span>:</span>
-              <span id="dashExpListCount" class="text-amber-800 font-bold">5 entries</span>
+              <span>Entries on <span id="dashExpListDate" class="text-slate-800 font-mono"></span>:</span>
+              <span id="dashExpListCount" class="text-amber-800 font-bold">0 entries</span>
             </div>
-            <div id="dashExpEntriesList" class="space-y-1 divide-y divide-[#ede1d3] max-h-48 overflow-y-auto"><div class="flex items-center justify-between py-1.5 text-xs">
-              <div class="flex items-center space-x-2">
-                <span class="font-bold text-slate-800">Remittance</span>
-                <span class="text-slate-500">Family Remittance</span>
-              </div>
-              <span class="font-mono font-bold text-rose-600">70.00 AED</span>
-            </div><div class="flex items-center justify-between py-1.5 text-xs">
-              <div class="flex items-center space-x-2">
-                <span class="font-bold text-slate-800">Other Expenses</span>
-                <span class="text-slate-500">Hu</span>
-              </div>
-              <span class="font-mono font-bold text-rose-600">560.00 AED</span>
-            </div><div class="flex items-center justify-between py-1.5 text-xs">
-              <div class="flex items-center space-x-2">
-                <span class="font-bold text-slate-800">Fuel</span>
-                <span class="text-slate-500">Jk</span>
-              </div>
-              <span class="font-mono font-bold text-rose-600">400.00 AED</span>
-            </div><div class="flex items-center justify-between py-1.5 text-xs">
-              <div class="flex items-center space-x-2">
-                <span class="font-bold text-slate-800">Food</span>
-                <span class="text-slate-500">U</span>
-              </div>
-              <span class="font-mono font-bold text-rose-600">200.00 AED</span>
-            </div><div class="flex items-center justify-between py-1.5 text-xs">
-              <div class="flex items-center space-x-2">
-                <span class="font-bold text-slate-800">Remittance</span>
-                <span class="text-slate-500">Family Remittance</span>
-              </div>
-              <span class="font-mono font-bold text-rose-600">500.00 AED</span>
-            </div></div>
+            <div id="dashExpEntriesList" class="space-y-1 divide-y divide-[#ede1d3] max-h-48 overflow-y-auto"></div>
           </div>
 
         </div>
@@ -1333,7 +1322,7 @@
             <button type="button" onclick="openAgreedRentModal()" class="text-[11px] bg-teal-100 hover:bg-teal-200 text-teal-800 font-bold px-2.5 py-1 rounded-xl border border-teal-300 transition flex items-center space-x-1">
               <span>Rent:</span>
               <span id="dashAgreedRentVal" class="font-luxury font-bold">500.00</span>
-              <span>AED ✏️</span>
+              <span><span class="app-currency-label">AED</span> ✏️</span>
             </button>
           </div>
 
@@ -1342,7 +1331,7 @@
             <div class="bg-white p-2.5 rounded-2xl border border-teal-100 shadow-xs">
               <div class="text-[10px] text-teal-800 font-bold uppercase truncate" id="dashRentChargeTitle">Monthly Rent</div>
               <div class="mt-1 font-luxury font-black text-sm text-slate-900">
-                <span id="dashMonthlyRentCharge">500.00</span> <span class="text-[9px] text-slate-400 font-normal">AED</span>
+                <span id="dashMonthlyRentCharge">500.00</span> <span class="app-currency-label text-[9px] text-slate-400 font-normal">AED</span>
               </div>
               <div class="text-[8px] text-teal-700 mt-0.5 truncate" id="dashRentChargeSub">Auto liability (+)</div>
             </div>
@@ -1351,7 +1340,7 @@
             <div class="bg-white p-2.5 rounded-2xl border border-emerald-100 shadow-xs">
               <div class="text-[10px] text-emerald-800 font-bold uppercase truncate">Paid This Month</div>
               <div class="mt-1 font-luxury font-black text-sm text-emerald-700">
-                <span id="dashCycleRentPaid">500.00</span> <span class="text-[9px] text-slate-400 font-normal">AED</span>
+                <span id="dashCycleRentPaid">500.00</span> <span class="app-currency-label text-[9px] text-slate-400 font-normal">AED</span>
               </div>
               <div class="text-[8px] text-emerald-700 mt-0.5 truncate" id="dashCycleRentCount">0 payments</div>
             </div>
@@ -1360,7 +1349,7 @@
             <div class="bg-white p-2.5 rounded-2xl border border-rose-200 shadow-xs bg-rose-50/20">
               <div class="text-[10px] text-rose-800 font-bold uppercase truncate">Total Balance Due</div>
               <div class="mt-1 font-luxury font-black text-sm text-rose-700">
-                <span id="dashRentBaqaya">0.00</span> <span class="text-[9px] text-rose-400 font-normal">AED</span>
+                <span id="dashRentBaqaya">0.00</span> <span class="app-currency-label text-[9px] text-rose-400 font-normal">AED</span>
               </div>
               <div class="text-[8px] text-rose-600 font-bold mt-0.5 truncate">Payable (Owed)</div>
             </div>
@@ -1393,7 +1382,7 @@
             </div>
             <div class="text-right">
               <span class="text-[9px] text-amber-300/80 uppercase tracking-wide block">Net Worth</span>
-              <span id="dashNetWorthVal" class="font-luxury font-black text-sm text-[#fef3c7]">-9,130.00 AED</span>
+              <span id="dashNetWorthVal" class="font-luxury font-black text-sm text-[#fef3c7]">0.00 <span class="app-currency-label">AED</span></span>
             </div>
           </div>
 
@@ -1402,7 +1391,7 @@
             <div class="bg-black/30 p-2.5 rounded-2xl border border-emerald-500/20">
               <div class="text-[10px] text-emerald-300 font-bold uppercase truncate">Total Assets</div>
               <div class="mt-1 font-luxury font-black text-sm text-emerald-400">
-                <span id="dashTotalAssets">370.00</span> <span class="text-[9px] text-emerald-300 font-normal">AED</span>
+                <span id="dashTotalAssets">370.00</span> <span class="app-currency-label text-[9px] text-emerald-300 font-normal">AED</span>
               </div>
               <div id="dashTotalAssetsSub" class="text-[8px] text-emerald-400 mt-0.5 truncate">Cash -40.00 + Receivables 410.00</div>
             </div>
@@ -1411,7 +1400,7 @@
             <div class="bg-black/30 p-2.5 rounded-2xl border border-rose-500/20">
               <div class="text-[10px] text-rose-300 font-bold uppercase truncate">Total Liabilities</div>
               <div class="mt-1 font-luxury font-black text-sm text-rose-400">
-                <span id="dashTotalLiabilities">9,500.00</span> <span class="text-[9px] text-rose-300 font-normal">AED</span>
+                <span id="dashTotalLiabilities">9,500.00</span> <span class="app-currency-label text-[9px] text-rose-300 font-normal">AED</span>
               </div>
               <div id="dashTotalLiabilitiesSub" class="text-[8px] text-rose-400 mt-0.5 truncate">Rent 0.00 + Visa 9500.00</div>
             </div>
@@ -1420,7 +1409,7 @@
             <div class="bg-black/30 p-2.5 rounded-2xl border border-amber-500/20">
               <div class="text-[10px] text-amber-300 font-bold uppercase truncate">Receivables (Due to You)</div>
               <div class="mt-1 font-luxury font-black text-sm text-amber-200">
-                <span id="dashReceivablesVal">410.00</span> <span class="text-[9px] text-amber-400 font-normal">AED</span>
+                <span id="dashReceivablesVal">410.00</span> <span class="app-currency-label text-[9px] text-amber-400 font-normal">AED</span>
               </div>
               <div class="text-[8px] text-amber-400 mt-0.5 truncate">Personal Loans</div>
             </div>
@@ -1429,7 +1418,7 @@
             <div class="bg-black/30 p-2.5 rounded-2xl border border-amber-500/20">
               <div class="text-[10px] text-amber-300 font-bold uppercase truncate">Payables (Owed by You)</div>
               <div class="mt-1 font-luxury font-black text-sm text-amber-200">
-                <span id="dashPayablesVal">9,500.00</span> <span class="text-[9px] text-amber-400 font-normal">AED</span>
+                <span id="dashPayablesVal">9,500.00</span> <span class="app-currency-label text-[9px] text-amber-400 font-normal">AED</span>
               </div>
               <div class="text-[8px] text-amber-400 mt-0.5 truncate">Room Rent &amp; Company Loan</div>
             </div>
@@ -1483,23 +1472,8 @@
               <td class="py-2 px-2.5 text-right font-mono text-rose-600">550.00</td>
               <td class="py-2 px-2.5 text-right font-mono font-bold text-rose-700">-550.00</td>
             </tr></tbody></table>
-          <div id="lenDenQuickList"><div class="flex justify-between items-center text-xs py-1 border-b border-slate-50">
-            <span class="font-bold text-slate-700">Company Loan</span>
-            <span class="font-mono font-bold text-rose-600">
-              -9500.00 AED (Payable)
-            </span>
-          </div><div class="flex justify-between items-center text-xs py-1 border-b border-slate-50">
-            <span class="font-bold text-slate-700">Kah</span>
-            <span class="font-mono font-bold text-emerald-600">
-              +10.00 AED (Receivable)
-            </span>
-          </div><div class="flex justify-between items-center text-xs py-1 border-b border-slate-50">
-            <span class="font-bold text-slate-700">Ali</span>
-            <span class="font-mono font-bold text-emerald-600">
-              +400.00 AED (Receivable)
-            </span>
-          </div></div>
-          <span id="lenDenNetTotal">-9090.00 AED</span>
+          <div id="lenDenQuickList"></div>
+          <span id="lenDenNetTotal">0.00 <span class="app-currency-label">AED</span></span>
         </div>
 
       </div>
@@ -1585,9 +1559,9 @@
               <span id="sheetOrdersEarnDailyAvg" class="text-emerald-700 font-bold font-mono">84.05/day</span>
             </div>
             <div class="mt-1 font-luxury font-black text-lg text-emerald-800">
-              <span id="sheetOrdersTotalEarn">336.20</span> <span class="text-[10px] font-normal text-slate-400">AED</span>
+              <span id="sheetOrdersTotalEarn">336.20</span> <span class="app-currency-label text-[10px] font-normal text-slate-400">AED</span>
             </div>
-            <div id="sheetOrdersEarnSubText" class="text-[11px] text-emerald-700 font-medium mt-0.5 truncate">84.05 AED/day avg (4 total days)</div>
+            <div id="sheetOrdersEarnSubText" class="text-[11px] text-emerald-700 font-medium mt-0.5 truncate">0.00 <span class="app-currency-label">AED</span>/day avg</div>
           </div>
 
           <!-- Order Per Day Average Card -->
@@ -1605,7 +1579,7 @@
               <button type="button" onclick="openRateModal()" class="text-amber-800 font-bold underline">Change</button>
             </div>
             <div class="mt-1 font-luxury font-black text-lg text-amber-900">
-              <span id="lblFixedRate">7.80</span> <span class="text-[10px] font-normal text-slate-400">AED</span>
+              <span id="lblFixedRate">7.80</span> <span class="app-currency-label text-[10px] font-normal text-slate-400">AED</span>
             </div>
           </div>
 
@@ -1621,7 +1595,7 @@
         <!-- Hidden compatibility elements -->
         <div class="hidden">
           <span id="totalOrdersCount">41</span>
-          <span id="totalOrdersEarning">336.20 AED</span>
+          <span id="totalOrdersEarning">0.00 <span class="app-currency-label">AED</span></span>
           <span id="sheetOrdersRate">7.80</span>
           <span id="sheetOrdersAvg">10.3 orders/day</span>
         </div>
@@ -1638,8 +1612,8 @@
                   <th class="py-2 px-3">Date</th>
                   <th class="py-2 px-3">Day</th>
                   <th class="py-2 px-3 text-right">Orders</th>
-                  <th class="py-2 px-3 text-right">Rate (AED)</th>
-                  <th class="py-2 px-3 text-right">Earn (AED)</th>
+                  <th class="py-2 px-3 text-right">Rate (<span class="app-currency-label">AED</span>)</th>
+                  <th class="py-2 px-3 text-right">Earn (<span class="app-currency-label">AED</span>)</th>
                   <th class="py-2 px-3">Notes</th>
                   <th class="py-2 px-3 text-center">Action</th>
                 </tr>
@@ -1680,7 +1654,7 @@
               <div class="text-[10px] font-bold text-amber-200 uppercase tracking-widest">Monthly Living Expenses Total</div>
               <div class="mt-1 flex items-baseline">
                 <span id="sheetLivingTotal" class="font-luxury text-3xl font-extrabold text-[#fef3c7]">2230.00</span>
-                <span class="text-xs font-bold ml-1 text-amber-400">AED</span>
+                <span class="app-currency-label text-xs font-bold ml-1 text-amber-400">AED</span>
               </div>
               <div class="text-[9px] text-amber-300/80 mt-0.5">Food, bike fuel &amp; other living costs in selected month</div>
             </div>
@@ -1695,7 +1669,7 @@
             <div class="bg-black/30 p-2.5 rounded-xl border border-amber-500/20 text-center">
               <div class="text-[9px] text-amber-300/90 font-bold uppercase truncate">🍔 Food &amp; Tea</div>
               <div class="mt-1 font-luxury font-black text-sm text-[#fef3c7]">
-                <span id="sheetFoodTotal">550.00</span> <span class="text-[8px] text-amber-400 font-normal">AED</span>
+                <span id="sheetFoodTotal">550.00</span> <span class="app-currency-label text-[8px] text-amber-400 font-normal">AED</span>
               </div>
               <div id="sheetFoodCount" class="text-[8px] text-amber-300/70 mt-0.5">2 records</div>
             </div>
@@ -1703,7 +1677,7 @@
             <div class="bg-black/30 p-2.5 rounded-xl border border-amber-500/20 text-center">
               <div class="text-[9px] text-amber-300/90 font-bold uppercase truncate">⛽ Bike Fuel</div>
               <div class="mt-1 font-luxury font-black text-sm text-[#fef3c7]">
-                <span id="sheetPetrolTotal">550.00</span> <span class="text-[8px] text-amber-400 font-normal">AED</span>
+                <span id="sheetPetrolTotal">550.00</span> <span class="app-currency-label text-[8px] text-amber-400 font-normal">AED</span>
               </div>
               <div id="sheetPetrolCount" class="text-[8px] text-amber-300/70 mt-0.5">2 records</div>
             </div>
@@ -1711,7 +1685,7 @@
             <div class="bg-black/30 p-2.5 rounded-xl border border-amber-500/20 text-center">
               <div class="text-[9px] text-amber-300/90 font-bold uppercase truncate">📱 Other Exp</div>
               <div class="mt-1 font-luxury font-black text-sm text-[#fef3c7]">
-                <span id="sheetOtherTotal">1130.00</span> <span class="text-[8px] text-amber-400 font-normal">AED</span>
+                <span id="sheetOtherTotal">1130.00</span> <span class="app-currency-label text-[8px] text-amber-400 font-normal">AED</span>
               </div>
               <div id="sheetOtherCount" class="text-[8px] text-amber-300/70 mt-0.5">3 records</div>
             </div>
@@ -1739,7 +1713,7 @@
           <span id="lblAgreedRentVal"></span>
           <span id="sheetRentLiability"></span>
           <span id="sheetRentCount"></span>
-          <span id="foodTotalSum">2230.00 AED</span>
+          <span id="foodTotalSum">0.00 <span class="app-currency-label">AED</span></span>
           <span id="foodOnlySum"></span>
           <span id="foodPetrolSum"></span>
           <span id="sheetCombinedFoodPetrol"></span>
@@ -1759,7 +1733,7 @@
                   <th class="py-2 px-2.5">Date</th>
                   <th class="py-2 px-2">Category</th>
                   <th class="py-2 px-2.5">Description</th>
-                  <th class="py-2 px-2 text-right">Amount (AED)</th>
+                  <th class="py-2 px-2 text-right">Amount (<span class="app-currency-label">AED</span>)</th>
                   <th class="py-2 px-2 text-center">Action</th>
                 </tr>
               </thead>
@@ -1889,7 +1863,7 @@
               <button type="button" onclick="openAgreedRentModal()" class="text-teal-700 font-bold underline">Edit</button>
             </div>
             <div class="mt-1 font-luxury font-black text-base text-teal-900">
-              <span id="tabRoomRentAgreed">500.00</span> <span class="text-[9px] text-slate-400 font-normal">AED</span>
+              <span id="tabRoomRentAgreed">500.00</span> <span class="app-currency-label text-[9px] text-slate-400 font-normal">AED</span>
             </div>
             <div class="text-[8px] text-teal-700 mt-0.5">Agreed rate / cycle</div>
           </div>
@@ -1897,7 +1871,7 @@
           <div class="card-cream p-2.5">
             <div class="text-[9px] text-slate-500 uppercase font-bold">Total Charged</div>
             <div class="mt-1 font-luxury font-black text-base text-slate-900">
-              <span id="tabRoomRentCharged">500.00</span> <span class="text-[9px] text-slate-400 font-normal">AED</span>
+              <span id="tabRoomRentCharged">500.00</span> <span class="app-currency-label text-[9px] text-slate-400 font-normal">AED</span>
             </div>
             <div class="text-[8px] text-slate-500 mt-0.5">All-time liability</div>
           </div>
@@ -1905,7 +1879,7 @@
           <div class="card-cream p-2.5 border-emerald-200 bg-emerald-50/20">
             <div class="text-[9px] text-emerald-800 uppercase font-bold">Total Paid</div>
             <div class="mt-1 font-luxury font-black text-base text-emerald-800">
-              <span id="tabRoomRentPaid">500.00</span> <span class="text-[9px] text-slate-400 font-normal">AED</span>
+              <span id="tabRoomRentPaid">500.00</span> <span class="app-currency-label text-[9px] text-slate-400 font-normal">AED</span>
             </div>
             <div class="text-[8px] text-emerald-700 mt-0.5">Recorded payments</div>
           </div>
@@ -1913,7 +1887,7 @@
           <div class="card-cream p-2.5 border-rose-200 bg-rose-50/20">
             <div class="text-[9px] text-rose-800 uppercase font-bold">Total Balance Due</div>
             <div class="mt-1 font-luxury font-black text-base text-rose-800">
-              <span id="tabRoomRentBaqaya">0.00</span> <span class="text-[9px] text-slate-400 font-normal">AED</span>
+              <span id="tabRoomRentBaqaya">0.00</span> <span class="app-currency-label text-[9px] text-slate-400 font-normal">AED</span>
             </div>
             <div class="text-[8px] text-rose-600 font-bold mt-0.5">Payable (Owed)</div>
           </div>
@@ -1996,13 +1970,13 @@
               </div>
               <div class="mt-0.5 flex items-baseline">
                 <span id="ldNetTotalAmount" class="font-luxury text-2xl sm:text-3xl font-extrabold text-[#fef3c7]">-9,090.00</span>
-                <span class="text-xs font-bold text-amber-400 ml-1.5">AED</span>
+                <span class="app-currency-label text-xs font-bold text-amber-400 ml-1.5">AED</span>
               </div>
             </div>
           </div>
           <div class="text-xs text-amber-200/90 sm:text-right font-medium">
-            <div id="ldNetBreakdownText">Receivables: 410.00 AED − Payables: 9,500.00 AED</div>
-            <div id="ldNetVerdictText" class="text-[10px] text-rose-300 font-bold mt-0.5">Net Result: 9,090.00 AED Payable (−)</div>
+            <div id="ldNetBreakdownText">Receivables: 0.00 <span class="app-currency-label">AED</span> − Payables: 0.00 <span class="app-currency-label">AED</span></div>
+            <div id="ldNetVerdictText" class="text-[10px] text-rose-300 font-bold mt-0.5">Net Result: 0.00 <span class="app-currency-label">AED</span></div>
           </div>
         </div>
 
@@ -2011,7 +1985,7 @@
           <div class="card-cream p-2.5 border-teal-200 bg-teal-50/20">
             <div class="text-[9px] text-teal-800 uppercase font-bold">Room Rent Balance</div>
             <div class="mt-1 font-luxury font-black text-base text-teal-900">
-              <span id="sheetLdRoomRentBaqaya">0.00</span> <span class="text-[9px] text-slate-400 font-normal">AED</span>
+              <span id="sheetLdRoomRentBaqaya">0.00</span> <span class="app-currency-label text-[9px] text-slate-400 font-normal">AED</span>
             </div>
             <div class="text-[8px] text-teal-700 mt-0.5">Room Rent</div>
           </div>
@@ -2019,7 +1993,7 @@
           <div class="card-cream p-2.5 border-amber-200 bg-amber-50/20">
             <div class="text-[9px] text-amber-900 uppercase font-bold">Company Loan Balance</div>
             <div class="mt-1 font-luxury font-black text-base text-amber-950">
-              <span id="sheetLdVisaDebt">9500.00</span> <span class="text-[9px] text-slate-400 font-normal">AED</span>
+              <span id="sheetLdVisaDebt">9500.00</span> <span class="app-currency-label text-[9px] text-slate-400 font-normal">AED</span>
             </div>
             <div class="text-[8px] text-amber-700 mt-0.5">Company Loan</div>
           </div>
@@ -2027,7 +2001,7 @@
           <div class="card-cream p-2.5 border-rose-200 bg-rose-50/20">
             <div class="text-[9px] text-rose-800 uppercase font-bold">Total Payable (Owed)</div>
             <div class="mt-1 font-luxury font-black text-base text-rose-800">
-              <span id="sheetLdTotalDene">9500.00</span> <span class="text-[9px] text-slate-400 font-normal">AED</span>
+              <span id="sheetLdTotalDene">9500.00</span> <span class="app-currency-label text-[9px] text-slate-400 font-normal">AED</span>
             </div>
             <div class="text-[8px] text-rose-600 mt-0.5">Payables</div>
           </div>
@@ -2035,7 +2009,7 @@
           <div class="card-cream p-2.5 border-emerald-200 bg-emerald-50/20">
             <div class="text-[9px] text-emerald-800 uppercase font-bold">Total Receivable (Due)</div>
             <div class="mt-1 font-luxury font-black text-base text-emerald-800">
-              <span id="sheetLdTotalLene">410.00</span> <span class="text-[9px] text-slate-400 font-normal">AED</span>
+              <span id="sheetLdTotalLene">410.00</span> <span class="app-currency-label text-[9px] text-slate-400 font-normal">AED</span>
             </div>
             <div class="text-[8px] text-emerald-600 mt-0.5">Receivables</div>
           </div>
@@ -2045,124 +2019,25 @@
         <div class="card-cream p-2.5 flex items-center justify-between gap-2 bg-[#faf6f0]">
           <div class="flex items-center space-x-2 flex-1">
             <label for="lendenFilter" class="text-xs font-bold text-slate-700">Filter:</label>
-            <select id="lendenFilter" onchange="renderLenDen()" class="text-xs font-bold bg-white border border-[#ebdccb] rounded-lg px-2.5 py-1 text-slate-800 outline-none">
+            <select id="lendenFilter" onchange="renderLoan()" class="text-xs font-bold bg-white border border-[#ebdccb] rounded-lg px-2.5 py-1 text-slate-800 outline-none">
               <option value="ALL">All Accounts</option>
               <option value="DENE">Payable (Owed)</option>
               <option value="LENE">Receivable (Due)</option>
             </select>
           </div>
-          <input type="text" id="lendenSearch" oninput="renderLenDen()" placeholder="Search person..." class="text-xs border border-[#ebdccb] rounded-lg px-2.5 py-1 w-32 sm:w-44 outline-none bg-white">
-          <button type="button" onclick="openAddModal('LenDen')" class="bg-[#b45309] hover:bg-[#92400e] text-[#fef3c7] text-xs font-bold px-3 py-1.5 rounded-xl shadow-xs transition flex items-center space-x-1">
+          <input type="text" id="lendenSearch" oninput="renderLoan()" placeholder="Search person..." class="text-xs border border-[#ebdccb] rounded-lg px-2.5 py-1 w-32 sm:w-44 outline-none bg-white">
+          <button type="button" onclick="openAddModal('Loan')" class="bg-[#b45309] hover:bg-[#92400e] text-[#fef3c7] text-xs font-bold px-3 py-1.5 rounded-xl shadow-xs transition flex items-center space-x-1">
             <span>➕</span>
             <span>Add Loan</span>
           </button>
         </div>
 
         <!-- Person Summary Cards Grid -->
-        <div id="personSummaryCards" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5"><div class="p-3.5 rounded-xl border bg-rose-50/60 border-rose-200 shadow-xs relative transition">
-          <div class="flex justify-between items-start">
-            <div>
-              <span class="font-extrabold text-xs sm:text-sm text-slate-900">Company Loan</span>
-            </div>
-            <div class="flex items-center space-x-1.5">
-              <span class="px-1.5 py-0.5 rounded text-[11px] font-bold bg-rose-200 text-rose-800">
-                Payable
-              </span>
-              <button onclick="deletePersonKhata(decodeURIComponent('Company%20Loan'))" class="text-rose-400 hover:text-rose-700 p-0.5 rounded hover:bg-rose-50 text-xs transition" title="Delete Person / Account">
-                🗑️
-              </button>
-            </div>
-          </div>
-          <div class="mt-2 flex justify-between text-[11px]">
-            <span class="text-slate-500">Given: <b class="text-rose-600 font-mono">500.00 AED</b></span>
-            <span class="text-slate-500">Received: <b class="text-emerald-600 font-mono">10,000.00 AED</b></span>
-          </div>
-          <div class="mt-1.5 pt-1.5 border-t border-slate-200/60 flex justify-between items-center text-xs">
-            <span class="font-semibold text-slate-600">Net:</span>
-            <span class="font-black font-mono text-rose-700">
-              9500.00 AED
-            </span>
-          </div>
-          <div class="mt-3 flex space-x-2">
-            <button type="button" onclick="openAccountLedgerModal('Company Loan')" class="flex-1 rounded-xl bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold py-2.5 px-3 flex items-center justify-center space-x-1.5 shadow-sm active:scale-95 transition">
-              <span>📋</span>
-              <span>View Statement</span>
-            </button>
-            <button type="button" onclick="exportPersonLedgerPDF(decodeURIComponent('Company%20Loan'))" class="rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold py-2 px-3 shadow-xs transition active:scale-95" title="Export PDF">
-              📄
-            </button>
-          </div>
-        </div><div class="p-3.5 rounded-xl border bg-emerald-50/60 border-emerald-200 shadow-xs relative transition">
-          <div class="flex justify-between items-start">
-            <div>
-              <span class="font-extrabold text-xs sm:text-sm text-slate-900">Kah</span>
-            </div>
-            <div class="flex items-center space-x-1.5">
-              <span class="px-1.5 py-0.5 rounded text-[11px] font-bold bg-emerald-200 text-emerald-800">
-                Receivable
-              </span>
-              <button onclick="deletePersonKhata(decodeURIComponent('Kah'))" class="text-rose-400 hover:text-rose-700 p-0.5 rounded hover:bg-rose-50 text-xs transition" title="Delete Person / Account">
-                🗑️
-              </button>
-            </div>
-          </div>
-          <div class="mt-2 flex justify-between text-[11px]">
-            <span class="text-slate-500">Given: <b class="text-rose-600 font-mono">10.00 AED</b></span>
-            <span class="text-slate-500">Received: <b class="text-emerald-600 font-mono">0.00 AED</b></span>
-          </div>
-          <div class="mt-1.5 pt-1.5 border-t border-slate-200/60 flex justify-between items-center text-xs">
-            <span class="font-semibold text-slate-600">Net:</span>
-            <span class="font-black font-mono text-emerald-700">
-              10.00 AED
-            </span>
-          </div>
-          <div class="mt-3 flex space-x-2">
-            <button type="button" onclick="openAccountLedgerModal('Kah')" class="flex-1 rounded-xl bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold py-2.5 px-3 flex items-center justify-center space-x-1.5 shadow-sm active:scale-95 transition">
-              <span>📋</span>
-              <span>View Statement</span>
-            </button>
-            <button type="button" onclick="exportPersonLedgerPDF(decodeURIComponent('Kah'))" class="rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold py-2 px-3 shadow-xs transition active:scale-95" title="Export PDF">
-              📄
-            </button>
-          </div>
-        </div><div class="p-3.5 rounded-xl border bg-emerald-50/60 border-emerald-200 shadow-xs relative transition">
-          <div class="flex justify-between items-start">
-            <div>
-              <span class="font-extrabold text-xs sm:text-sm text-slate-900">Ali</span>
-            </div>
-            <div class="flex items-center space-x-1.5">
-              <span class="px-1.5 py-0.5 rounded text-[11px] font-bold bg-emerald-200 text-emerald-800">
-                Receivable
-              </span>
-              <button onclick="deletePersonKhata(decodeURIComponent('Ali'))" class="text-rose-400 hover:text-rose-700 p-0.5 rounded hover:bg-rose-50 text-xs transition" title="Delete Person / Account">
-                🗑️
-              </button>
-            </div>
-          </div>
-          <div class="mt-2 flex justify-between text-[11px]">
-            <span class="text-slate-500">Given: <b class="text-rose-600 font-mono">500.00 AED</b></span>
-            <span class="text-slate-500">Received: <b class="text-emerald-600 font-mono">100.00 AED</b></span>
-          </div>
-          <div class="mt-1.5 pt-1.5 border-t border-slate-200/60 flex justify-between items-center text-xs">
-            <span class="font-semibold text-slate-600">Net:</span>
-            <span class="font-black font-mono text-emerald-700">
-              400.00 AED
-            </span>
-          </div>
-          <div class="mt-3 flex space-x-2">
-            <button type="button" onclick="openAccountLedgerModal('Ali')" class="flex-1 rounded-xl bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold py-2.5 px-3 flex items-center justify-center space-x-1.5 shadow-sm active:scale-95 transition">
-              <span>📋</span>
-              <span>View Statement</span>
-            </button>
-            <button type="button" onclick="exportPersonLedgerPDF(decodeURIComponent('Ali'))" class="rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold py-2 px-3 shadow-xs transition active:scale-95" title="Export PDF">
-              📄
-            </button>
-          </div>
-        </div></div>
+        <div id="personSummaryCards" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5"></div>
 
-        <!-- Hidden Compatibility Container for Len Den Table -->
+        <!-- Hidden Compatibility Container for Loan Table -->
         <div class="hidden" id="lenDenTableContainer">
-          <select id="lendenPersonTableFilter"><option value="ALL">All Accounts</option><option value="Company Loan">Company Loan (9500.00 AED - Payable)</option><option value="Kah">Kah (10.00 AED - Receivable)</option><option value="Ali">Ali (400.00 AED - Receivable)</option></select>
+          <select id="lendenPersonTableFilter"><option value="ALL">All Accounts</option></select>
           <div id="lenDenPersonSubBanner" class="hidden">
             <span id="subBannerPersonName"></span>
             <span id="subBannerStatus"></span>
@@ -2222,8 +2097,8 @@
             </td>
           </tr></tbody></table>
           <span id="lenDenTableTitle">Detailed Loan Ledger (All Accounts)</span>
-          <span id="totalLenDenDiye">1010.00 AED</span>
-          <span id="totalLenDenLiye">10100.00 AED</span>
+          <span id="totalLoanDiye">0.00 <span class="app-currency-label">AED</span></span>
+          <span id="totalLoanLiye">0.00 <span class="app-currency-label">AED</span></span>
           <span id="lenDenEntryCount">5 entries</span>
         </div>
 
@@ -2255,7 +2130,7 @@
             <div class="text-[10px] font-bold text-purple-200 uppercase tracking-widest">Total Sent This Month</div>
             <div class="mt-1 flex items-baseline">
               <span id="remitTotalPaid" class="font-luxury text-3xl font-extrabold text-purple-200">570.00</span>
-              <span class="text-xs font-bold ml-1 text-purple-300">AED</span>
+              <span class="app-currency-label text-xs font-bold ml-1 text-purple-300">AED</span>
             </div>
             <div class="text-[9px] text-purple-300/80 mt-0.5">Family support transfers</div>
           </div>
@@ -2269,7 +2144,7 @@
         <div class="card-cream overflow-hidden border-[#ebdccb]">
           <div class="p-3 bg-[#faf6f0] border-b border-[#ebdccb] flex flex-wrap items-center justify-between gap-2">
             <h4 class="font-bold text-xs text-slate-900 uppercase tracking-wide">Remittance Slips History</h4>
-            <div id="remitMultiCurrencyTotals" class="text-xs font-mono font-bold text-purple-900">570.00 AED | 43,035.00 PKR</div>
+            <div id="remitMultiCurrencyTotals" class="text-xs font-mono font-bold text-purple-900">0.00 <span class="app-currency-label">AED</span></div>
           </div>
           <div class="overflow-x-auto">
             <table class="w-full text-left text-xs">
@@ -2277,7 +2152,7 @@
                 <tr>
                   <th class="py-2.5 px-3 whitespace-nowrap">Date</th>
                   <th class="py-2.5 px-3">Description / Slip</th>
-                  <th class="py-2.5 px-3 text-right whitespace-nowrap">Amount (AED)</th>
+                  <th class="py-2.5 px-3 text-right whitespace-nowrap">Amount (<span class="app-currency-label">AED</span>)</th>
                   <th class="py-2.5 px-3 text-right whitespace-nowrap">Received Amount</th>
                   <th class="py-2.5 px-3 text-center whitespace-nowrap">Action</th>
                 </tr>
@@ -2336,21 +2211,21 @@
           <div class="card-cream p-2.5">
             <div class="text-[9px] text-slate-500 uppercase font-bold">Total Inflow</div>
             <div class="mt-1 font-luxury font-black text-base text-emerald-800">
-              <span id="sheetStmtIn">14300.00</span> <span class="text-[9px] text-slate-400 font-normal">AED</span>
+              <span id="sheetStmtIn">14300.00</span> <span class="app-currency-label text-[9px] text-slate-400 font-normal">AED</span>
             </div>
           </div>
 
           <div class="card-cream p-2.5">
             <div class="text-[9px] text-slate-500 uppercase font-bold">Total Outflow</div>
             <div class="mt-1 font-luxury font-black text-base text-rose-800">
-              <span id="sheetStmtOut">3840.00</span> <span class="text-[9px] text-slate-400 font-normal">AED</span>
+              <span id="sheetStmtOut">3840.00</span> <span class="app-currency-label text-[9px] text-slate-400 font-normal">AED</span>
             </div>
           </div>
 
           <div class="card-cream p-2.5">
             <div class="text-[9px] text-slate-500 uppercase font-bold">Net Difference</div>
             <div class="mt-1 font-luxury font-black text-base text-slate-900">
-              <span id="sheetStmtNet">10460.00</span> <span class="text-[9px] text-slate-400 font-normal">AED</span>
+              <span id="sheetStmtNet">10460.00</span> <span class="app-currency-label text-[9px] text-slate-400 font-normal">AED</span>
             </div>
           </div>
         </div>
@@ -2398,8 +2273,8 @@
                   <th class="py-2 px-3">Date</th>
                   <th class="py-2 px-3">Category</th>
                   <th class="py-2 px-3">Description</th>
-                  <th class="py-2 px-3 text-right">In (AED)</th>
-                  <th class="py-2 px-3 text-right">Out (AED)</th>
+                  <th class="py-2 px-3 text-right">In (<span class="app-currency-label">AED</span>)</th>
+                  <th class="py-2 px-3 text-right">Out (<span class="app-currency-label">AED</span>)</th>
                   <th class="py-2 px-3 text-center">Action</th>
                 </tr>
               </thead>
@@ -2483,9 +2358,9 @@
 
           <!-- Hidden Compatibility Stubs for removed admin cards -->
           <div style="display:none !important;" aria-hidden="true">
-            <span id="adminCompanyLoanTotal">0.00 AED</span>
-            <span id="adminLoanRecoveredTotal">0.00 AED</span>
-            <span id="adminRemainingDebtTotal">0.00 AED</span>
+            <span id="adminCompanyLoanTotal">0.00 <span class="app-currency-label">AED</span></span>
+            <span id="adminLoanRecoveredTotal">0.00 <span class="app-currency-label">AED</span></span>
+            <span id="adminRemainingDebtTotal">0.00 <span class="app-currency-label">AED</span></span>
           </div>
 
           <!-- Registered Riders Directory Card -->
@@ -2574,7 +2449,7 @@
     </button>
 
     <!-- Tab 5: Loans -->
-    <button type="button" onclick="switchTab('lenden')" id="bnav_lenden" class="bnav-btn flex flex-col items-center justify-center flex-1 transition active:scale-95 text-slate-500 font-semibold" title="Loans &amp; Len Den">
+    <button type="button" onclick="switchTab('lenden')" id="bnav_lenden" class="bnav-btn flex flex-col items-center justify-center flex-1 transition active:scale-95 text-slate-500 font-semibold" title="Loans">
       <div class="bnav-icon-wrap w-9 h-7 rounded-full flex items-center justify-center transition">
         <span class="text-base leading-none">🤝</span>
       </div>
@@ -2588,16 +2463,18 @@
   <aside id="drawerMenu" role="dialog" aria-modal="true" aria-label="Navigation Drawer" class="fixed top-0 left-0 bottom-0 w-72 max-w-[85vw] bg-[#1c130e] text-white z-drawer-panel transform transition-transform duration-200 shadow-2xl flex flex-col border-r border-amber-600/30 -translate-x-full">
     <!-- Drawer Header -->
     <div class="p-4 bg-gradient-to-b from-[#2a170f] to-[#1c130e] border-b border-amber-700/30 flex items-center justify-between">
-      <div class="flex items-center space-x-2.5">
-        <div class="w-9 h-9 rounded-2xl bg-gradient-to-tr from-[#b45309] to-[#d97706] text-white flex items-center justify-center text-lg font-bold shadow-xs">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#b45309] to-[#d97706] text-white flex items-center justify-center text-xl font-bold shadow-md">
           🛵
         </div>
         <div>
-          <h2 class="font-luxury font-bold text-sm text-amber-100">Rider Khatabook</h2>
-          <p class="text-[9px] text-amber-300/70">Dubai Wealth Edition</p>
+          <h2 class="font-luxury font-bold text-sm sm:text-base text-amber-100 leading-tight">Rider Khatabook</h2>
+          <p class="text-[10px] text-amber-300/70">Dubai Wealth Edition</p>
         </div>
       </div>
-      <button type="button" onclick="toggleDrawer(false)" class="text-amber-300 hover:text-white p-1 text-lg font-bold">×</button>
+      <button type="button" onclick="openKhataManagerModal(); toggleDrawer(false);" class="w-11 h-11 rounded-full bg-gradient-to-tr from-amber-500/30 to-amber-600/40 hover:from-amber-500/40 hover:to-amber-600/50 border-2 border-amber-400/60 flex items-center justify-center text-xl shadow-md transition active:scale-95 text-amber-100 flex-shrink-0 cursor-pointer" title="My Businesses / Accounts (Tap to switch)">
+        <span id="drawerHeaderUserIcon">👤</span>
+      </button>
     </div>
 
     <!-- Drawer Navigation Links -->
@@ -2640,18 +2517,6 @@
       </button>
 
       <div class="pt-3 border-t border-amber-900/40 my-2 space-y-2">
-        <!-- Khata Switcher Shortcut inside Drawer -->
-        <button type="button" onclick="openKhataManagerModal(); toggleDrawer(false);" class="w-full text-left px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-amber-100 font-bold text-xs flex items-center justify-between transition border border-amber-600/20">
-          <div class="flex items-center space-x-2.5">
-            <span class="text-base">📁</span>
-            <div>
-              <div class="font-bold">My Khatas &amp; Books</div>
-              <div id="drawerKhataSub" class="text-[11px] text-amber-300/80">Active: Primary Khata</div>
-            </div>
-          </div>
-          <span class="text-amber-400 font-bold">⇄</span>
-        </button>
-
         <!-- Settings & App Tools -->
         <button type="button" onclick="openModal('modalSettingsTools'); toggleDrawer(false);" class="w-full text-left px-3.5 py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-200 font-bold text-xs flex items-center justify-between transition border border-amber-500/30 shadow-xs active:scale-95">
           <div class="flex items-center space-x-2.5">
@@ -2661,19 +2526,15 @@
           <span class="text-amber-400 font-bold">→</span>
         </button>
 
-        <!-- Rider Account Info & Very Last Log Out Option -->
-        <div class="pt-2 border-t border-amber-900/40">
-          <div class="p-2.5 rounded-2xl bg-black/40 border border-amber-600/30 flex items-center justify-between mb-2">
-            <div class="flex items-center space-x-2">
-              <span class="text-base">👤</span>
-              <div>
-                <div id="drawerUserEmail" class="font-bold text-xs text-amber-100 truncate max-w-[150px]">alir0436@gmail.com</div>
-                <div id="drawerUserRole" class="text-[11px] text-amber-400 font-semibold">Super Admin (Active)</div>
-              </div>
-            </div>
-          </div>
+        <!-- Hidden Compatibility Stubs for JS safe setting -->
+        <div class="hidden" aria-hidden="true">
+          <span id="drawerKhataSub"></span>
+          <span id="drawerUserEmail"></span>
+          <span id="drawerUserRole"></span>
+        </div>
 
-          <!-- STRICTLY AT THE VERY BOTTOM OF THE SIDE DRAWER -->
+        <!-- STRICTLY LOG OUT AT THE VERY BOTTOM -->
+        <div class="pt-2 border-t border-amber-900/40">
           <button id="drawerLogoutBtn" type="button" onclick="handleAuthLogout()" class="w-full py-2.5 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 font-bold text-xs flex items-center justify-center space-x-2 border border-rose-500/30 transition active:scale-95 shadow-xs">
             <span>🚪</span>
             <span>Log Out Account</span>
@@ -2887,15 +2748,15 @@
       <div class="p-3 bg-purple-50/50 border-b border-purple-100 flex items-center justify-between text-xs">
         <div>
           <span class="text-slate-500 text-[10px] block font-semibold">Total Given (Out)</span>
-          <span id="accLedgerGiven" class="font-mono font-bold text-rose-700 text-xs">0.00 AED</span>
+          <span id="accLedgerGiven" class="font-mono font-bold text-rose-700 text-xs">0.00 <span class="app-currency-label">AED</span></span>
         </div>
         <div>
           <span class="text-slate-500 text-[10px] block font-semibold">Total Received (In)</span>
-          <span id="accLedgerReceived" class="font-mono font-bold text-emerald-700 text-xs">0.00 AED</span>
+          <span id="accLedgerReceived" class="font-mono font-bold text-emerald-700 text-xs">0.00 <span class="app-currency-label">AED</span></span>
         </div>
         <div class="text-right">
           <span class="text-slate-500 text-[10px] block font-semibold">Net Balance</span>
-          <span id="accLedgerNet" class="font-mono font-black text-slate-900 text-sm">0.00 AED</span>
+          <span id="accLedgerNet" class="font-mono font-black text-slate-900 text-sm">0.00 <span class="app-currency-label">AED</span></span>
         </div>
       </div>
 
@@ -3006,7 +2867,7 @@
           </select>
         </div>
 
-        <!-- Len Den Fields -->
+        <!-- Loan Fields -->
         <div id="lenDenFields" class="space-y-2.5 p-2.5 bg-purple-50 rounded-xl border border-purple-200 hidden">
           <div>
             <label class="block font-bold text-purple-900 mb-1">Person / Account Name</label>
@@ -3018,11 +2879,11 @@
             <label class="block font-bold text-purple-900 mb-1">Transaction Type</label>
             <div class="grid grid-cols-2 gap-2">
               <label class="flex items-center space-x-1.5 p-1.5 bg-white rounded-lg border border-purple-200 cursor-pointer">
-                <input type="radio" name="lenDenType" value="DIYE" checked="" onchange="handleLenDenTypeChange()">
+                <input type="radio" name="lenDenType" value="DIYE" checked="" onchange="handleLoanTypeChange()">
                 <span class="font-bold text-rose-700 text-xs">Repay / Lent (Out)</span>
               </label>
               <label class="flex items-center space-x-1.5 p-1.5 bg-white rounded-lg border border-purple-200 cursor-pointer">
-                <input type="radio" name="lenDenType" value="LIYE" onchange="handleLenDenTypeChange()">
+                <input type="radio" name="lenDenType" value="LIYE" onchange="handleLoanTypeChange()">
                 <span class="font-bold text-emerald-700 text-xs">Receive / Borrow (In)</span>
               </label>
             </div>
@@ -3041,7 +2902,7 @@
           <div id="lenDenInterestSection" class="p-2 bg-white rounded-lg border border-purple-200 space-y-1">
             <div class="flex items-center justify-between text-xs">
               <label class="font-bold text-purple-950">Interest / Loan Fee Portion</label>
-              <span class="text-[10px] text-slate-500 font-semibold">AED</span>
+              <span class="app-currency-label text-[10px] text-slate-500 font-semibold">AED</span>
             </div>
             <input type="number" id="lenDenInterestAmount" placeholder="0.00 (Fee or Interest portion)" min="0" step="0.01" class="w-full px-2.5 py-1.5 border border-purple-300 rounded-lg text-xs outline-none focus:ring-1 focus:ring-purple-500 font-mono">
             <p class="text-[9px] text-slate-500">Principal reduces loan liability. Only fee/interest is counted as expense.</p>
@@ -3072,7 +2933,7 @@
 
           <div class="grid grid-cols-2 gap-2 pt-1">
             <div>
-              <label for="entryRemitRate" class="block font-bold text-slate-800 mb-1">Exchange Rate (1 AED = <span id="lblRemitRateCurrency">PKR</span>)</label>
+              <label for="entryRemitRate" class="block font-bold text-slate-800 mb-1">Exchange Rate (1 <span class="app-currency-label">AED</span> = <span id="lblRemitRateCurrency">PKR</span>)</label>
               <input type="number" step="0.0001" min="0.0001" inputmode="decimal" id="entryRemitRate" oninput="updateRemitCalculation()" placeholder="e.g. 76.50" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white font-mono font-bold text-slate-800 outline-none text-xs">
             </div>
             <div>
@@ -3083,7 +2944,7 @@
               </div>
             </div>
           </div>
-          <p class="text-[10px] text-slate-500 pt-1">Received amount = Sent Amount (AED) × Exchange Rate. Currency defaults based on country selected.</p>
+          <p class="text-[10px] text-slate-500 pt-1">Received amount = Sent Amount (<span class="app-currency-label">AED</span>) × Exchange Rate. Currency defaults based on country selected.</p>
         </div>
 
         <!-- Date (Full width - Time cell completely removed) -->
@@ -3094,7 +2955,7 @@
 
         <!-- Amount -->
         <div id="amountField" class="">
-          <label class="block font-bold text-slate-700 mb-1">Amount (AED)</label>
+          <label class="block font-bold text-slate-700 mb-1">Amount (<span class="app-currency-label">AED</span>)</label>
           <input type="number" step="0.01" inputmode="decimal" id="entryAmount" oninput="if(typeof updateRemitCalculation === 'function') updateRemitCalculation();" required="" placeholder="0.00" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm font-bold">
         </div>
 
@@ -3103,8 +2964,8 @@
           <label class="block font-bold text-emerald-900">Total Deliveries / Orders Count</label>
           <input type="number" id="entryOrderCount" placeholder="e.g. 28" class="w-full px-3 py-1.5 border border-emerald-300 rounded-lg font-bold">
           <div class="text-[11px] text-emerald-700 flex justify-between pt-0.5">
-            <span>Rate: <b id="modalOrderRate" class="hidden">7.80</b> AED</span>
-            <span>Calculated: <b id="modalOrderEarning" class="hidden">0.00</b> AED</span>
+            <span>Rate: <b id="modalOrderRate" class="hidden">7.80</b> <span class="app-currency-label">AED</span></span>
+            <span>Calculated: <b id="modalOrderEarning" class="hidden">0.00</b> <span class="app-currency-label">AED</span></span>
           </div>
         </div>
 
@@ -3137,7 +2998,7 @@
     </div>
   </div>
 
-  <!-- ================= MODAL: FIXED RATE (7.80 AED Target) ================= -->
+  <!-- ================= MODAL: FIXED RATE TARGET ================= -->
   <div id="modalRate" class="fixed inset-0 z-modal-standard flex items-center justify-center p-3 modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="rateModalTitle" onclick="if(event.target===this)closeModal('modalRate')">
     <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-slate-200 modal-card-viewport">
       <div class="bg-slate-900 text-white px-4 py-3 flex justify-between items-center">
@@ -3148,7 +3009,7 @@
         <p class="text-slate-600">Select the 16th to 15th billing cycle. The rate will apply specifically to this cycle.</p>
         <label for="rateBillingCycle" class="block text-slate-700 font-semibold">Billing Cycle (16–15)</label>
         <select id="rateBillingCycle" onchange="onRateBillingCycleChange(this.value)" class="w-full px-3 py-2 border border-slate-300 rounded-lg font-semibold"></select>
-        <label for="inputNewRate" class="block text-slate-700 font-semibold pt-1">Order Rate (AED)</label>
+        <label for="inputNewRate" class="block text-slate-700 font-semibold pt-1">Order Rate (<span class="app-currency-label">AED</span>)</label>
         <input type="number" min="0.01" step="0.01" inputmode="decimal" id="inputNewRate" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-lg font-bold text-center">
         <div class="flex space-x-2 pt-2">
           <button onclick="closeModal('modalRate')" class="flex-1 py-1.5 bg-slate-100 font-bold rounded-lg">Cancel</button>
@@ -3171,7 +3032,7 @@
       <div class="p-4 space-y-3 text-xs">
         
         <div>
-          <label for="inputAgreedRent" class="block font-bold text-slate-700 mb-1">Monthly Agreed Rent (AED):</label>
+          <label for="inputAgreedRent" class="block font-bold text-slate-700 mb-1">Monthly Agreed Rent (<span class="app-currency-label">AED</span>):</label>
           <input type="number" step="10" inputmode="decimal" id="inputAgreedRent" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xl font-black text-center font-mono text-teal-800 bg-teal-50/30 outline-none focus:ring-2 focus:ring-teal-500">
         </div>
 
@@ -3537,15 +3398,27 @@ create policy "Allow public all" on public."RiderKhatabook"
             <input type="text" id="authInputName" placeholder="e.g. Ali Raza" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-amber-500 outline-none">
           </div>
 
-          <div id="authFieldCompany" class="hidden">
-            <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">Delivery Company / Platform</label>
-            <select id="authInputCompany" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-amber-500 outline-none bg-white">
-              <option value="Talabat">Talabat</option>
-              <option value="Deliveroo">Deliveroo</option>
-              <option value="Noon">Noon Food / Minutes</option>
-              <option value="Careem">Careem Box / Food</option>
-              <option value="Other">Other Courier / Private</option>
-            </select>
+          <div id="authFieldCompany" class="hidden space-y-2">
+            <div>
+              <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">Delivery Company / Platform</label>
+              <select id="authInputCompany" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-amber-500 outline-none bg-white">
+                <option value="Talabat">Talabat</option>
+                <option value="Deliveroo">Deliveroo</option>
+                <option value="Noon">Noon Food / Minutes</option>
+                <option value="Careem">Careem Box / Food</option>
+                <option value="Other">Other Courier / Private</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">Account Currency (Selected Once)</label>
+              <select id="authInputCurrency" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-amber-500 outline-none bg-white font-bold">
+                <option value="AED" selected>🇦🇪 AED (UAE Dirham)</option>
+                <option value="PKR">🇵🇰 PKR (Pakistani Rupee)</option>
+                <option value="INR">🇮🇳 INR (Indian Rupee)</option>
+                <option value="SAR">🇸🇦 SAR (Saudi Riyal)</option>
+                <option value="USD">🇺🇸 USD (US Dollar)</option>
+              </select>
+            </div>
           </div>
 
           <div>
@@ -3686,7 +3559,7 @@ create policy "Allow public all" on public."RiderKhatabook"
           </div>
           <div class="p-2.5 rounded-xl bg-rose-50 border border-rose-200">
             <div class="text-[11px] text-rose-800 font-bold uppercase">Company Loan Debt</div>
-            <div class="text-base font-black font-luxury text-rose-900 mt-0.5" id="inspectModalDebt">0.00 AED</div>
+            <div class="text-base font-black font-luxury text-rose-900 mt-0.5" id="inspectModalDebt">0.00 <span class="app-currency-label">AED</span></div>
           </div>
         </div>
         <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
@@ -3701,56 +3574,69 @@ create policy "Allow public all" on public."RiderKhatabook"
     </div>
   </div>
 
-  <div id="modalKhataManager" class="fixed inset-0 z-modal-standard flex items-center justify-center p-3 modal-backdrop hidden" onclick="if(event.target===this)closeKhataManagerModal()" role="dialog" aria-modal="true" aria-labelledby="khataManagerModalTitle">
-    <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden border border-amber-200 animate-in fade-in zoom-in-95 duration-150 modal-card-viewport">
-      <!-- Modal Header -->
-      <div class="bg-gradient-to-r from-[#1c130e] to-[#2a170f] text-white p-4 flex items-center justify-between border-b border-amber-600/30">
-        <div class="flex items-center space-x-2.5">
-          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#b45309] to-[#d97706] text-white flex items-center justify-center text-lg font-bold shadow-md">
-            📁
-          </div>
-          <div>
-            <h3 class="font-luxury font-bold text-sm text-amber-100" id="khataManagerModalTitle">My Khatas &amp; Books</h3>
-            <p id="khataUserEmailBadge" class="text-[10px] text-amber-300/80">alir0436@gmail.com</p>
-          </div>
+  <!-- ================= MODAL: MY BUSINESSES / ACCOUNTS (EXACT MATCH 193294.jpg) ================= -->
+  <div id="modalKhataManager" class="fixed inset-0 z-modal-standard flex items-end sm:items-center justify-center p-0 sm:p-4 modal-backdrop hidden" onclick="if(event.target===this)closeKhataManagerModal()" role="dialog" aria-modal="true" aria-labelledby="khataManagerModalTitle">
+    <div style="background-color: #ffffff !important; color: #0f172a !important;" class="rounded-t-3xl sm:rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-150 modal-card-viewport">
+      
+      <!-- Clean Header with Edit Button matching 193294.jpg -->
+      <div style="padding: 1.15rem 1.25rem 0.85rem 1.25rem; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between;">
+        <div>
+          <h3 style="font-weight: 800; font-size: 1.15rem; color: #0f172a !important; margin: 0; line-height: 1.2;" id="khataManagerModalTitle">My Businesses</h3>
+          <p id="khataUserEmailBadge" style="font-size: 0.75rem; color: #64748b; margin-top: 2px;">alir0436@gmail.com</p>
         </div>
-        <button type="button" onclick="closeKhataManagerModal()" class="text-amber-300 hover:text-white p-1 text-lg font-bold">×</button>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <button type="button" id="btnKhataEditMode" onclick="toggleKhataEditMode()" style="padding: 0.35rem 0.85rem; border-radius: 0.5rem; border: 1.5px solid #1b6e4e !important; color: #1b6e4e !important; background: transparent; font-weight: 700; font-size: 0.75rem; cursor: pointer;">
+            Edit
+          </button>
+          <button type="button" onclick="closeKhataManagerModal()" style="border: none; background: transparent; color: #64748b; font-size: 1.2rem; cursor: pointer; padding: 0.25rem 0.5rem; font-weight: bold;">✕</button>
+        </div>
       </div>
 
-      <div class="p-4 space-y-3.5 text-xs">
-        <!-- Explainer -->
-        <div class="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-950 text-[11px] leading-relaxed">
-          <span>💡 <b>Multiple Khatas:</b> Aap apne ek hi account mein alag alag khatay (jaise Talabat Khata, Deliveroo Khata, ya Personal Hisaab) bana kar switch kar sakte hain.</span>
+      <div style="padding: 1rem 1.25rem 1.25rem 1.25rem; display: flex; flex-direction: column; gap: 1rem;">
+        <!-- Hidden compat stubs -->
+        <span id="khataCountBadge" class="hidden"></span>
+
+        <!-- Business Accounts List (matching 193294.jpg with store icons & radio buttons) -->
+        <div id="khataListContainer" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 18rem; overflow-y: auto;">
+          <!-- Rendered dynamically -->
         </div>
 
-        <!-- Khata List -->
-        <div>
-          <div class="flex items-center justify-between mb-1.5">
-            <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Your Active Khatas</span>
-            <span id="khataCountBadge" class="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">1 Book</span>
-          </div>
-          <div id="khataListContainer" class="space-y-2 max-h-52 overflow-y-auto pr-1">
-            <!-- Rendered dynamically -->
-          </div>
-        </div>
+        <!-- Add New Business Box with Locked-in Currency Selection -->
+        <div id="khataAddBox" class="hidden" style="padding: 0.85rem; border-radius: 1rem; background-color: #f8fafc; border: 1.5px solid #e2e8f0; display: none; flex-direction: column; gap: 0.65rem;">
+          <label style="font-size: 0.75rem; font-weight: 700; color: #1e293b;">New Business Name:</label>
+          <input type="text" id="newKhataNameInput" placeholder="e.g. Dubai debit credits / Talabat" style="width: 100%; border: 1.5px solid #cbd5e1; border-radius: 0.75rem; padding: 0.55rem 0.75rem; font-size: 0.8rem; color: #0f172a; background: #ffffff; outline: none;">
 
-        <!-- Add New Khata Box -->
-        <div class="pt-3 border-t border-slate-200 space-y-2">
-          <label class="block text-[10px] font-bold text-slate-700 uppercase">Create New Khata (Naya Khata)</label>
-          <div class="flex items-center space-x-1.5">
-            <input type="text" id="newKhataNameInput" placeholder="e.g. Deliveroo Hisaab / Personal" class="flex-1 border border-slate-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-amber-500 outline-none">
-            <button type="button" onclick="createNewKhataBook()" class="px-3 py-2 rounded-xl bg-[#b45309] hover:bg-[#92400e] text-white font-bold text-xs shadow-xs transition active:scale-95 whitespace-nowrap">
-              + Add Khata
+          <label style="font-size: 0.75rem; font-weight: 700; color: #1e293b;">Select Currency (Account bnaty waqt ik bar):</label>
+          <select id="newKhataCurrencySelect" style="width: 100%; border: 1.5px solid #cbd5e1; border-radius: 0.75rem; padding: 0.55rem 0.75rem; font-size: 0.8rem; color: #0f172a; background: #ffffff; outline: none; font-weight: 600; cursor: pointer;">
+            <option value="AED" selected>🇦🇪 AED (د.إ) — UAE Dirham</option>
+            <option value="PKR">🇵🇰 PKR (Rs.) — Pakistani Rupee</option>
+            <option value="INR">🇮🇳 INR (₹) — Indian Rupee</option>
+            <option value="SAR">🇸🇦 SAR (﷼) — Saudi Riyal</option>
+            <option value="USD">🇺🇸 USD ($) — US Dollar</option>
+            <option value="OMR">🇴🇲 OMR (ر.ع.) — Omani Rial</option>
+            <option value="QAR">🇶🇦 QAR (ر.ق) — Qatari Riyal</option>
+            <option value="KWD">🇰🇼 KWD (د.ك) — Kuwaiti Dinar</option>
+            <option value="BHD">🇧🇭 BHD (ب.د) — Bahraini Dinar</option>
+          </select>
+
+          <div style="display: flex; gap: 0.5rem; margin-top: 0.25rem;">
+            <button type="button" onclick="toggleKhataAddBox(false)" style="flex: 1; padding: 0.55rem; border-radius: 0.75rem; border: 1px solid #cbd5e1; background: #ffffff; color: #475569; font-weight: 700; font-size: 0.75rem; cursor: pointer;">
+              Cancel
+            </button>
+            <button type="button" onclick="createNewKhataBook()" style="flex: 1; padding: 0.55rem; border-radius: 0.75rem; border: none; background-color: #1b6e4e !important; color: #ffffff !important; font-weight: 700; font-size: 0.75rem; cursor: pointer; box-shadow: 0 2px 6px rgba(27,110,78,0.25);">
+              Create Account
             </button>
           </div>
         </div>
 
-        <!-- Close Button -->
-        <div class="pt-2">
-          <button type="button" onclick="closeKhataManagerModal()" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition text-xs">
-            Close
-          </button>
-        </div>
+        <!-- Prominent Full-Width Green Bottom Button matching 193294.jpg ("Make A New Business") -->
+        <button type="button" id="btnMakeNewBusiness" onclick="toggleKhataAddBox(true)" style="background-color: #1b6e4e !important; color: #ffffff !important; display: flex !important; align-items: center !important; justify-content: center !important; gap: 0.5rem !important; width: 100% !important; padding: 0.85rem 1rem !important; border-radius: 0.85rem !important; font-size: 0.875rem !important; font-weight: 700 !important; border: none !important; box-shadow: 0 4px 14px rgba(27, 110, 78, 0.28) !important; cursor: pointer;">
+          <svg style="width: 1.25rem; height: 1.25rem; fill: #ffffff !important;" viewBox="0 0 24 24">
+            <path d="M4 4h16a1 1 0 0 1 1 1v2a1 1 0 0 1-.293.707L19 9.414V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V9.414L3.293 7.707A1 1 0 0 1 3 7V5a1 1 0 0 1 1-1zm2 7v8h12v-8H6zm-1-5v1.382l1.618 1.618H17.382L19 6.382V6H5z"/>
+          </svg>
+          <span style="color: #ffffff !important; font-weight: 700 !important; font-size: 0.875rem !important;">Make A New Business</span>
+        </button>
+
       </div>
     </div>
   </div>
@@ -3873,15 +3759,15 @@ create policy "Allow public all" on public."RiderKhatabook"
     <div id="salaryCycleFields"></div>
     <div id="salarySlipFields"></div>
     <span id="dashVisaLoanRemaining">0.00</span>
-    <span id="dashVisaLoanPaid">0.00 AED</span>
-    <span id="dashVisaMonthCut">0.00 AED</span>
+    <span id="dashVisaLoanPaid">0.00 <span class="app-currency-label">AED</span></span>
+    <span id="dashVisaMonthCut">0.00 <span class="app-currency-label">AED</span></span>
     <span id="dashOrdersMonthBadge"></span>
     <span id="dashOrdersRateBadge"></span>
     <span id="dashOrdersCountBadge"></span>
     <span id="dashOrdersEarningsBadge"></span>
     <span id="dashOrdersAvgBadge"></span>
     <span id="kpiMonthlyOrdersCount">0</span>
-    <span id="kpiMonthlyOrdersEarnings">0.00 AED</span>
+    <span id="kpiMonthlyOrdersEarnings">0.00 <span class="app-currency-label">AED</span></span>
   </div>
 
     <script>
@@ -3937,6 +3823,30 @@ create policy "Allow public all" on public."RiderKhatabook"
     }
   
     var chartMode = 'earnings';
+
+
+    function openSetOpeningBalanceModal() {
+      const inp = document.getElementById("inputOpeningBalanceVal");
+      if (inp) {
+        inp.value = (parseFloat(appState.openingBalance) || 0).toFixed(2);
+      }
+      openModal("modalSetOpeningBalance");
+    }
+
+    async function saveOpeningBalanceModal() {
+      const inp = document.getElementById("inputOpeningBalanceVal");
+      const val = parseFloat(inp?.value);
+      if (isNaN(val) || val < 0) {
+        showToast("Please enter a valid opening balance (e.g. 0 or 500)", false);
+        return;
+      }
+      appState.openingBalance = val;
+      saveToStorage(true, true);
+      renderAll();
+      closeModal("modalSetOpeningBalance");
+      showToast(`✅ Opening Cash updated: ${val.toFixed(2)} ${getActiveCurrency()}`);
+      await pushToCloud();
+    }
 
     // =========================================================================
     // SUPABASE CLOUD LIVE CONNECTION & CONFIG
@@ -4019,6 +3929,7 @@ create policy "Allow public all" on public."RiderKhatabook"
         fixed_rate: appState.fixed_rate,
         monthlyRates: appState.monthlyRates || {},
         agreedMonthlyRent: appState.agreedMonthlyRent,
+          openingBalance: appState.openingBalance || 0,
         monthlyRentRates: appState.monthlyRentRates || {},
           customOrderStart: appState.customOrderStart || "",
           customOrderEnd: appState.customOrderEnd || "",
@@ -4149,6 +4060,7 @@ create policy "Allow public all" on public."RiderKhatabook"
                 const remoteTime = new Date(remoteBook?.savedAt || 0).getTime();
                 const localTime = new Date(localBook?.savedAt || 0).getTime();
                 if (!localBook || remoteTime >= localTime || force) {
+                  let missingCloudEntries = false;
                   if (remoteBook) {
                     const localDelTx = Array.isArray(localBook?.deletedTxIds) ? localBook.deletedTxIds : [];
                     const remoteDelTx = Array.isArray(remoteBook?.deletedTxIds) ? remoteBook.deletedTxIds : [];
@@ -4157,9 +4069,45 @@ create policy "Allow public all" on public."RiderKhatabook"
                     const delTxSet = new Set(mergedDelTx);
                     if (Array.isArray(remoteBook.transactions)) {
                       remoteBook.transactions = remoteBook.transactions.filter(t => !delTxSet.has(t.id));
+                    } else {
+                      remoteBook.transactions = [];
+                    }
+
+                    const isPrimaryKhata = (!kId || kId === "default");
+                    if (isPrimaryKhata) {
+                      // Guarantee all 17 Company Loan and 36 Room Rent report entries are present in remoteBook ONLY for primary khata
+                      const rTxMap = new Map(remoteBook.transactions.map(t => [String(t.id), t]));
+                      COMPANY_LOAN_REPORT_ENTRIES.forEach(entry => {
+                        if (!delTxSet.has(entry.id) && !rTxMap.has(entry.id)) {
+                          remoteBook.transactions.push(JSON.parse(JSON.stringify(entry)));
+                          rTxMap.set(entry.id, entry);
+                          missingCloudEntries = true;
+                        }
+                      });
+                      ROOM_RENT_REPORT_ENTRIES.forEach(entry => {
+                        if (!delTxSet.has(entry.id) && !rTxMap.has(entry.id)) {
+                          remoteBook.transactions.push(JSON.parse(JSON.stringify(entry)));
+                          rTxMap.set(entry.id, entry);
+                          missingCloudEntries = true;
+                        }
+                      });
+                    } else {
+                      // Strict secondary Khata isolation: purge any leaked report entries
+                      const leakedIds = new Set([
+                        ...COMPANY_LOAN_REPORT_ENTRIES.map(e => String(e.id)),
+                        ...ROOM_RENT_REPORT_ENTRIES.map(e => String(e.id))
+                      ]);
+                      const origLen = remoteBook.transactions.length;
+                      remoteBook.transactions = remoteBook.transactions.filter(t => !leakedIds.has(String(t.id)));
+                      if (remoteBook.transactions.length !== origLen) {
+                        missingCloudEntries = true;
+                      }
                     }
                   }
                   safeSetItem(localKey, JSON.stringify(remoteBook));
+                  if (missingCloudEntries) {
+                    setTimeout(() => { pushToCloud().catch(err => console.warn("Background push after merge:", err)); }, 100);
+                  }
                 }
               });
             }
@@ -4390,10 +4338,13 @@ create policy "Allow public all" on public."RiderKhatabook"
       },
 
       // Cash Summary: Inflows, Outflows, and Net Cash in Hand
-      getCashSummary(monthKey, openingCash = 0) {
+      getCashSummary(monthKey, openingCash = null) {
         let cashIn = 0;
         let cashOut = 0;
         const txs = appState.transactions || [];
+        const baseOpening = (openingCash !== null && typeof openingCash !== 'undefined')
+          ? (parseFloat(openingCash) || 0)
+          : (parseFloat(appState.openingBalance) || 0);
 
         txs.forEach(t => {
           if (monthKey && monthKey !== 'ALL') {
@@ -4402,7 +4353,7 @@ create policy "Allow public all" on public."RiderKhatabook"
           }
           if (t.isAutoRentCharge) return; // Non-cash accrual
 
-          // Non-Real loans must not affect Real Cash or Real Net Balance!
+          // Non-Real loans & rent entries must strictly NOT affect Real Cash flow!
           if (t.isReal === false || t.isNonReal === true) return;
 
           const cin = parseFloat(t.cash_in) || 0;
@@ -4411,17 +4362,17 @@ create policy "Allow public all" on public."RiderKhatabook"
           const isCompanyLoan = t.isCompanyLoan || t.isCompanyVisaLoan || pName.includes("company") || pName.includes("visa");
           const isRoomRent = t.isRoomRent || pName.includes("room rent") || pName.includes("rent");
 
-          if (isCompanyLoan && cin >= 1000 && (typeof t.isReal === 'undefined')) return; // Legacy non-cash loan package advance
-          if (isRoomRent && cin > 0) return;    // Non-cash rent charge
+          if (isCompanyLoan && cin >= 1000 && (typeof t.isReal === 'undefined')) return;
+          if (isRoomRent && cin > 0) return;
 
           cashIn += cin;
           cashOut += cout;
         });
 
         const netCashChange = cashIn - cashOut;
-        const closingCash = openingCash + netCashChange;
+        const closingCash = baseOpening + netCashChange;
 
-        return { openingCash, cashIn, cashOut, netCashChange, closingCash };
+        return { openingCash: baseOpening, cashIn, cashOut, netCashChange, closingCash };
       },
 
       // Income Ledger: Gross Salary, Incentives, Bonuses, Other Inflows
@@ -4438,6 +4389,7 @@ create policy "Allow public all" on public."RiderKhatabook"
             if (d.slice(0, 7) !== monthKey) return;
           }
           if (t.isAutoRentCharge) return;
+          if (t.isReal === false || t.isNonReal === true) return; // Non-real income excluded from real cash
           const cin = parseFloat(t.cash_in) || 0;
           if (cin <= 0) return;
 
@@ -4479,6 +4431,7 @@ create policy "Allow public all" on public."RiderKhatabook"
             const d = AccountingEngine.toIso(t.date);
             if (d.slice(0, 7) !== monthKey) return;
           }
+          if (t.isReal === false || t.isNonReal === true) return; // Non-real expenses/deductions excluded from real cash
           const cout = parseFloat(t.cash_out) || 0;
           if (cout <= 0) return;
 
@@ -4569,15 +4522,22 @@ create policy "Allow public all" on public."RiderKhatabook"
           const person = String(t.person || '').toLowerCase();
           const detail = String(t.detail || '').toLowerCase();
           const id = String(t.id || '');
-          const isRoomRentPayment = !!t.isRoomRent || person.includes('room rent') ||
-            person.includes('rent') || detail.includes('room rent') ||
-            detail.includes('rent') || id.startsWith('rr_');
+          const isRoomRent = !!t.isRoomRent || person.includes('room rent') ||
+            detail.includes('room rent') || id.startsWith('tx_rr_') || id.startsWith('rr_');
+          if (!isRoomRent || t.isAutoRentCharge) return;
+
+          const charge = Math.max(0, parseFloat(t.cash_in) || 0);
           const paid = Math.max(0, parseFloat(t.cash_out) || 0);
-          if (!isRoomRentPayment || paid <= 0 || t.isAutoRentCharge) return;
-          const key = `${String(t.date || '').slice(0, 10)}|${paid.toFixed(2)}`;
-          const count = recordedPaymentCounts.get(key) || 0;
-          if (count > 0) recordedPaymentCounts.set(key, count - 1);
-          else totalPaid += paid;
+
+          if (t.isRentCharge || charge > 0) {
+            totalCharged += charge;
+          }
+          if (t.isRentPayment || paid > 0) {
+            const key = `${String(t.date || '').slice(0, 10)}|${paid.toFixed(2)}`;
+            const count = recordedPaymentCounts.get(key) || 0;
+            if (count > 0) recordedPaymentCounts.set(key, count - 1);
+            else totalPaid += paid;
+          }
         });
         autoCharges.forEach(t => { totalCharged += parseFloat(t.cash_in) || 0; });
         const outstanding = totalCharged - totalPaid;
@@ -4611,8 +4571,8 @@ create policy "Allow public all" on public."RiderKhatabook"
         return this.getCompanyLoanSummary();
       },
 
-      // Personal Len Den Ledger
-      getLenDenSummary() {
+      // Personal Loan Ledger
+      getLoanSummary() {
         let totalReceivable = 0;
         let totalPayable = 0;
         let totalGiven = 0;
@@ -4671,7 +4631,7 @@ create policy "Allow public all" on public."RiderKhatabook"
         const cash = AccountingEngine.getCashSummary('ALL');
         const rent = AccountingEngine.getRoomRentSummary();
         const visa = AccountingEngine.getVisaLoanSummary();
-        const lenden = AccountingEngine.getLenDenSummary();
+        const lenden = AccountingEngine.getLoanSummary();
 
         const cashInHand = cash.closingCash;
         const receivables = lenden.totalReceivable;
@@ -4992,6 +4952,1004 @@ create policy "Allow public all" on public."RiderKhatabook"
     const STORAGE_KEY = "rider_khatabook_accounting_fixed_blank_20261104_v5";
     const ZOOM_KEY = "dubai_rider_zoom_pref";
 
+
+
+    // Official Room Rent Entries from CreditBook Report (06 Nov 23 - 07 Nov 26)
+    const ROOM_RENT_REPORT_ENTRIES = [
+  {
+    "id": "tx_rr_01",
+    "date": "2025-10-15",
+    "time": "12:00 PM",
+    "month": "October 2025",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "Augest rent",
+    "cash_in": 500.0,
+    "cash_out": 0.0,
+    "principal_amount": 500.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentCharge": true
+  },
+  {
+    "id": "tx_rr_02",
+    "date": "2025-10-15",
+    "time": "12:01 PM",
+    "month": "October 2025",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "Augest rent paid to zahid virk",
+    "cash_in": 0.0,
+    "cash_out": 500.0,
+    "principal_amount": 500.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentPayment": true
+  },
+  {
+    "id": "tx_rr_03",
+    "date": "2025-10-15",
+    "time": "12:02 PM",
+    "month": "October 2025",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "September rent",
+    "cash_in": 500.0,
+    "cash_out": 0.0,
+    "principal_amount": 500.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentCharge": true
+  },
+  {
+    "id": "tx_rr_04",
+    "date": "2025-10-15",
+    "time": "12:03 PM",
+    "month": "October 2025",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "For labour food",
+    "cash_in": 0.0,
+    "cash_out": 120.0,
+    "principal_amount": 120.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentPayment": true
+  },
+  {
+    "id": "tx_rr_05",
+    "date": "2025-10-17",
+    "time": "12:00 PM",
+    "month": "October 2025",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "Adnoc food",
+    "cash_in": 0.0,
+    "cash_out": 270.0,
+    "principal_amount": 270.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentPayment": true
+  },
+  {
+    "id": "tx_rr_06",
+    "date": "2025-10-21",
+    "time": "12:00 PM",
+    "month": "October 2025",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "D3 food",
+    "cash_in": 0.0,
+    "cash_out": 72.0,
+    "principal_amount": 72.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentPayment": true
+  },
+  {
+    "id": "tx_rr_07",
+    "date": "2025-11-11",
+    "time": "12:00 PM",
+    "month": "November 2025",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "October rent",
+    "cash_in": 500.0,
+    "cash_out": 0.0,
+    "principal_amount": 500.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentCharge": true
+  },
+  {
+    "id": "tx_rr_08",
+    "date": "2025-12-16",
+    "time": "12:00 PM",
+    "month": "December 2025",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "Room rent novrmber",
+    "cash_in": 500.0,
+    "cash_out": 0.0,
+    "principal_amount": 500.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentCharge": true
+  },
+  {
+    "id": "tx_rr_09",
+    "date": "2026-01-04",
+    "time": "12:00 PM",
+    "month": "January 2026",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "Room tent December",
+    "cash_in": 500.0,
+    "cash_out": 0.0,
+    "principal_amount": 500.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentCharge": true
+  },
+  {
+    "id": "tx_rr_10",
+    "date": "2026-01-20",
+    "time": "12:00 PM",
+    "month": "January 2026",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "Khana abu dhabi",
+    "cash_in": 0.0,
+    "cash_out": 175.0,
+    "principal_amount": 175.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentPayment": true
+  },
+  {
+    "id": "tx_rr_11",
+    "date": "2026-02-07",
+    "time": "12:00 PM",
+    "month": "February 2026",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "Rent january",
+    "cash_in": 500.0,
+    "cash_out": 0.0,
+    "principal_amount": 500.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentCharge": true
+  },
+  {
+    "id": "tx_rr_12",
+    "date": "2026-02-16",
+    "time": "12:00 PM",
+    "month": "February 2026",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "Room rent",
+    "cash_in": 0.0,
+    "cash_out": 500.0,
+    "principal_amount": 500.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentPayment": true
+  },
+  {
+    "id": "tx_rr_13",
+    "date": "2026-03-16",
+    "time": "12:00 PM",
+    "month": "March 2026",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "Fabrary rent",
+    "cash_in": 500.0,
+    "cash_out": 0.0,
+    "principal_amount": 500.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentCharge": true
+  },
+  {
+    "id": "tx_rr_14",
+    "date": "2026-03-23",
+    "time": "12:00 PM",
+    "month": "March 2026",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "Room rent",
+    "cash_in": 0.0,
+    "cash_out": 400.0,
+    "principal_amount": 400.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentPayment": true
+  },
+  {
+    "id": "tx_rr_15",
+    "date": "2026-04-17",
+    "time": "12:00 PM",
+    "month": "April 2026",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "March rent",
+    "cash_in": 500.0,
+    "cash_out": 0.0,
+    "principal_amount": 500.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentCharge": true
+  },
+  {
+    "id": "tx_rr_16",
+    "date": "2026-05-04",
+    "time": "12:00 PM",
+    "month": "May 2026",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "Room rent april",
+    "cash_in": 500.0,
+    "cash_out": 0.0,
+    "principal_amount": 500.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentCharge": true
+  },
+  {
+    "id": "tx_rr_17",
+    "date": "2026-05-17",
+    "time": "12:00 PM",
+    "month": "May 2026",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "Room rent for may",
+    "cash_in": 500.0,
+    "cash_out": 0.0,
+    "principal_amount": 500.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentCharge": true
+  },
+  {
+    "id": "tx_rr_18",
+    "date": "2026-05-17",
+    "time": "12:01 PM",
+    "month": "May 2026",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "Room rent",
+    "cash_in": 0.0,
+    "cash_out": 400.0,
+    "principal_amount": 400.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentPayment": true
+  },
+  {
+    "id": "tx_rr_19",
+    "date": "2026-06-11",
+    "time": "12:00 PM",
+    "month": "June 2026",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "Suhail ko diye virk k khny pr",
+    "cash_in": 0.0,
+    "cash_out": 50.0,
+    "principal_amount": 50.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentPayment": true
+  },
+  {
+    "id": "tx_rr_20",
+    "date": "2026-06-11",
+    "time": "12:01 PM",
+    "month": "June 2026",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "June ka rent",
+    "cash_in": 500.0,
+    "cash_out": 0.0,
+    "principal_amount": 500.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentCharge": true
+  },
+  {
+    "id": "tx_rr_21",
+    "date": "2026-07-14",
+    "time": "12:00 PM",
+    "month": "July 2026",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "July",
+    "cash_in": 500.0,
+    "cash_out": 0.0,
+    "principal_amount": 500.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentCharge": true
+  },
+  {
+    "id": "tx_rr_22",
+    "date": "2026-08-02",
+    "time": "12:00 PM",
+    "month": "August 2026",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "August rent",
+    "cash_in": 500.0,
+    "cash_out": 0.0,
+    "principal_amount": 500.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentCharge": true
+  },
+  {
+    "id": "tx_rr_23",
+    "date": "2026-08-04",
+    "time": "12:00 PM",
+    "month": "August 2026",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "Rent payment - 04 Aug 26",
+    "cash_in": 0.0,
+    "cash_out": 400.0,
+    "principal_amount": 400.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentPayment": true
+  },
+  {
+    "id": "tx_rr_24",
+    "date": "2026-09-06",
+    "time": "12:00 PM",
+    "month": "September 2026",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "September rent",
+    "cash_in": 500.0,
+    "cash_out": 0.0,
+    "principal_amount": 500.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentCharge": true
+  },
+  {
+    "id": "tx_rr_25",
+    "date": "2026-09-11",
+    "time": "12:00 PM",
+    "month": "September 2026",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "Cash",
+    "cash_in": 0.0,
+    "cash_out": 25.0,
+    "principal_amount": 25.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentPayment": true
+  },
+  {
+    "id": "tx_rr_26",
+    "date": "2026-09-11",
+    "time": "12:01 PM",
+    "month": "September 2026",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "Cash dya",
+    "cash_in": 0.0,
+    "cash_out": 100.0,
+    "principal_amount": 100.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentPayment": true
+  },
+  {
+    "id": "tx_rr_27",
+    "date": "2026-09-11",
+    "time": "12:02 PM",
+    "month": "September 2026",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "Chawalo me daly",
+    "cash_in": 0.0,
+    "cash_out": 15.0,
+    "principal_amount": 15.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentPayment": true
+  },
+  {
+    "id": "tx_rr_28",
+    "date": "2026-09-12",
+    "time": "12:00 PM",
+    "month": "September 2026",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "Adnoc food",
+    "cash_in": 0.0,
+    "cash_out": 99.0,
+    "principal_amount": 99.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentPayment": true
+  },
+  {
+    "id": "tx_rr_29",
+    "date": "2026-09-14",
+    "time": "12:00 PM",
+    "month": "September 2026",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "Botim ch ny transfer krwaya",
+    "cash_in": 0.0,
+    "cash_out": 250.0,
+    "principal_amount": 250.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentPayment": true
+  },
+  {
+    "id": "tx_rr_30",
+    "date": "2026-09-14",
+    "time": "12:01 PM",
+    "month": "September 2026",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "Fuda sy ly kr shahid ko diye virk ny dilwaye march me",
+    "cash_in": 0.0,
+    "cash_out": 500.0,
+    "principal_amount": 500.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentPayment": true
+  },
+  {
+    "id": "tx_rr_31",
+    "date": "2026-09-25",
+    "time": "12:00 PM",
+    "month": "September 2026",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "Shahid",
+    "cash_in": 0.0,
+    "cash_out": 500.0,
+    "principal_amount": 500.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentPayment": true
+  },
+  {
+    "id": "tx_rr_32",
+    "date": "2026-10-05",
+    "time": "12:00 PM",
+    "month": "October 2026",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "Adnoc food",
+    "cash_in": 0.0,
+    "cash_out": 162.0,
+    "principal_amount": 162.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentPayment": true
+  },
+  {
+    "id": "tx_rr_33",
+    "date": "2026-10-08",
+    "time": "12:00 PM",
+    "month": "October 2026",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "Rent payment - 08 Oct 26",
+    "cash_in": 0.0,
+    "cash_out": 113.0,
+    "principal_amount": 113.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentPayment": true
+  },
+  {
+    "id": "tx_rr_34",
+    "date": "2026-10-09",
+    "time": "12:00 PM",
+    "month": "October 2026",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "Rent payment - 09 Oct 26 (1)",
+    "cash_in": 0.0,
+    "cash_out": 213.0,
+    "principal_amount": 213.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentPayment": true
+  },
+  {
+    "id": "tx_rr_35",
+    "date": "2026-10-09",
+    "time": "12:01 PM",
+    "month": "October 2026",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "Rent payment - 09 Oct 26 (2)",
+    "cash_in": 0.0,
+    "cash_out": 13.0,
+    "principal_amount": 13.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentPayment": true
+  },
+  {
+    "id": "tx_rr_36",
+    "date": "2026-10-10",
+    "time": "12:00 PM",
+    "month": "October 2026",
+    "category": "Loan",
+    "person": "Room Rent",
+    "detail": "Km aye",
+    "cash_in": 0.0,
+    "cash_out": 13.0,
+    "principal_amount": 13.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isRoomRent": true,
+    "isRentPayment": true
+  }
+];
+
+    // Official Fountain Head License / Company Loan Entries from CreditBook Report
+    const COMPANY_LOAN_REPORT_ENTRIES = [
+  {
+    "id": "tx_cl_01",
+    "date": "2025-08-23",
+    "time": "12:00 PM",
+    "month": "August 2025",
+    "category": "Loan",
+    "person": "Company Loan",
+    "detail": "Visa licens pkg",
+    "cash_in": 10000.0,
+    "cash_out": 0.0,
+    "principal_amount": 10000.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isCompanyLoan": true,
+    "isCompanyVisaLoan": true,
+    "isLoanPrincipal": true,
+    "isLoanDeduction": false
+  },
+  {
+    "id": "tx_cl_02",
+    "date": "2025-08-23",
+    "time": "12:01 PM",
+    "month": "August 2025",
+    "category": "Loan",
+    "person": "Company Loan",
+    "detail": "May 25",
+    "cash_in": 0.0,
+    "cash_out": 500.0,
+    "principal_amount": 500.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isCompanyLoan": true,
+    "isCompanyVisaLoan": true,
+    "isLoanPrincipal": false,
+    "isLoanDeduction": true
+  },
+  {
+    "id": "tx_cl_03",
+    "date": "2025-08-23",
+    "time": "12:02 PM",
+    "month": "August 2025",
+    "category": "Loan",
+    "person": "Company Loan",
+    "detail": "Jun 25",
+    "cash_in": 0.0,
+    "cash_out": 300.0,
+    "principal_amount": 300.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isCompanyLoan": true,
+    "isCompanyVisaLoan": true,
+    "isLoanPrincipal": false,
+    "isLoanDeduction": true
+  },
+  {
+    "id": "tx_cl_04",
+    "date": "2025-08-23",
+    "time": "12:03 PM",
+    "month": "August 2025",
+    "category": "Loan",
+    "person": "Company Loan",
+    "detail": "July 25 ye 500 kam kr k 300 krwyq tha loan",
+    "cash_in": 0.0,
+    "cash_out": 300.0,
+    "principal_amount": 300.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isCompanyLoan": true,
+    "isCompanyVisaLoan": true,
+    "isLoanPrincipal": false,
+    "isLoanDeduction": true
+  },
+  {
+    "id": "tx_cl_05",
+    "date": "2025-08-23",
+    "time": "12:04 PM",
+    "month": "August 2025",
+    "category": "Loan",
+    "person": "Company Loan",
+    "detail": "Advance",
+    "cash_in": 0.0,
+    "cash_out": 1000.0,
+    "principal_amount": 1000.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isCompanyLoan": true,
+    "isCompanyVisaLoan": true,
+    "isLoanPrincipal": false,
+    "isLoanDeduction": true
+  },
+  {
+    "id": "tx_cl_06",
+    "date": "2025-09-14",
+    "time": "12:00 PM",
+    "month": "September 2025",
+    "category": "Loan",
+    "person": "Company Loan",
+    "detail": "Agust",
+    "cash_in": 0.0,
+    "cash_out": 400.0,
+    "principal_amount": 400.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isCompanyLoan": true,
+    "isCompanyVisaLoan": true,
+    "isLoanPrincipal": false,
+    "isLoanDeduction": true
+  },
+  {
+    "id": "tx_cl_07",
+    "date": "2025-11-16",
+    "time": "12:00 PM",
+    "month": "November 2025",
+    "category": "Loan",
+    "person": "Company Loan",
+    "detail": "Salary",
+    "cash_in": 0.0,
+    "cash_out": 0.0,
+    "principal_amount": 0.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isCompanyLoan": true,
+    "isCompanyVisaLoan": true,
+    "isLoanPrincipal": false,
+    "isLoanDeduction": true
+  },
+  {
+    "id": "tx_cl_08",
+    "date": "2025-12-16",
+    "time": "12:00 PM",
+    "month": "December 2025",
+    "category": "Loan",
+    "person": "Company Loan",
+    "detail": "Loan adjustment",
+    "cash_in": 2516.0,
+    "cash_out": 0.0,
+    "principal_amount": 2516.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isCompanyLoan": true,
+    "isCompanyVisaLoan": true,
+    "isLoanPrincipal": true,
+    "isLoanDeduction": false
+  },
+  {
+    "id": "tx_cl_09",
+    "date": "2025-12-18",
+    "time": "12:00 PM",
+    "month": "December 2025",
+    "category": "Loan",
+    "person": "Company Loan",
+    "detail": "867 cut hwy",
+    "cash_in": 0.0,
+    "cash_out": 700.0,
+    "principal_amount": 700.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isCompanyLoan": true,
+    "isCompanyVisaLoan": true,
+    "isLoanPrincipal": false,
+    "isLoanDeduction": true
+  },
+  {
+    "id": "tx_cl_10",
+    "date": "2026-01-14",
+    "time": "12:00 PM",
+    "month": "January 2026",
+    "category": "Loan",
+    "person": "Company Loan",
+    "detail": "Loan deduction - 14 Jan 26",
+    "cash_in": 0.0,
+    "cash_out": 500.0,
+    "principal_amount": 500.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isCompanyLoan": true,
+    "isCompanyVisaLoan": true,
+    "isLoanPrincipal": false,
+    "isLoanDeduction": true
+  },
+  {
+    "id": "tx_cl_11",
+    "date": "2026-02-15",
+    "time": "12:00 PM",
+    "month": "February 2026",
+    "category": "Loan",
+    "person": "Company Loan",
+    "detail": "Gy",
+    "cash_in": 0.0,
+    "cash_out": 1.0,
+    "principal_amount": 1.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isCompanyLoan": true,
+    "isCompanyVisaLoan": true,
+    "isLoanPrincipal": false,
+    "isLoanDeduction": true
+  },
+  {
+    "id": "tx_cl_12",
+    "date": "2026-03-16",
+    "time": "12:00 PM",
+    "month": "March 2026",
+    "category": "Loan",
+    "person": "Company Loan",
+    "detail": "March salry",
+    "cash_in": 0.0,
+    "cash_out": 100.0,
+    "principal_amount": 100.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isCompanyLoan": true,
+    "isCompanyVisaLoan": true,
+    "isLoanPrincipal": false,
+    "isLoanDeduction": true
+  },
+  {
+    "id": "tx_cl_13",
+    "date": "2026-04-14",
+    "time": "12:00 PM",
+    "month": "April 2026",
+    "category": "Loan",
+    "person": "Company Loan",
+    "detail": "Loan deduction - 14 Apr 26",
+    "cash_in": 0.0,
+    "cash_out": 300.0,
+    "principal_amount": 300.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isCompanyLoan": true,
+    "isCompanyVisaLoan": true,
+    "isLoanPrincipal": false,
+    "isLoanDeduction": true
+  },
+  {
+    "id": "tx_cl_14",
+    "date": "2026-06-29",
+    "time": "12:00 PM",
+    "month": "June 2026",
+    "category": "Loan",
+    "person": "Company Loan",
+    "detail": ".k",
+    "cash_in": 0.0,
+    "cash_out": 1.0,
+    "principal_amount": 1.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isCompanyLoan": true,
+    "isCompanyVisaLoan": true,
+    "isLoanPrincipal": false,
+    "isLoanDeduction": true
+  },
+  {
+    "id": "tx_cl_15",
+    "date": "2026-07-06",
+    "time": "12:00 PM",
+    "month": "July 2026",
+    "category": "Loan",
+    "person": "Company Loan",
+    "detail": "Loan deduction - 06 Jul 26",
+    "cash_in": 0.0,
+    "cash_out": 1.0,
+    "principal_amount": 1.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isCompanyLoan": true,
+    "isCompanyVisaLoan": true,
+    "isLoanPrincipal": false,
+    "isLoanDeduction": true
+  },
+  {
+    "id": "tx_cl_16",
+    "date": "2026-08-02",
+    "time": "12:00 PM",
+    "month": "August 2026",
+    "category": "Loan",
+    "person": "Company Loan",
+    "detail": "Loan deduction - 02 Aug 26",
+    "cash_in": 0.0,
+    "cash_out": 1.0,
+    "principal_amount": 1.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isCompanyLoan": true,
+    "isCompanyVisaLoan": true,
+    "isLoanPrincipal": false,
+    "isLoanDeduction": true
+  },
+  {
+    "id": "tx_cl_17",
+    "date": "2026-09-30",
+    "time": "12:00 PM",
+    "month": "September 2026",
+    "category": "Loan",
+    "person": "Company Loan",
+    "detail": "Loan deduction - 30 Sep 26",
+    "cash_in": 0.0,
+    "cash_out": 200.0,
+    "principal_amount": 200.0,
+    "interest_amount": 0.0,
+    "isReal": false,
+    "isNonReal": true,
+    "currency": "AED",
+    "isCompanyLoan": true,
+    "isCompanyVisaLoan": true,
+    "isLoanPrincipal": false,
+    "isLoanDeduction": true
+  }
+];
+
     // Application State
     var appState = {
       version: "14.0",
@@ -5002,7 +5960,7 @@ create policy "Allow public all" on public."RiderKhatabook"
       agreedMonthlyRent: 0, // Blank starter: no rent agreement set
       monthlyRentRates: {},   // Monthly rent rates
       zoomLevel: 1.0,
-      transactions: [],
+      transactions: JSON.parse(JSON.stringify([...COMPANY_LOAN_REPORT_ENTRIES, ...ROOM_RENT_REPORT_ENTRIES])), agreedMonthlyRent: 500,
       roomRentRecords: [],
       orders: [],
       persons: {},
@@ -5201,6 +6159,7 @@ create policy "Allow public all" on public."RiderKhatabook"
 
         if (isCL) {
           t.person = "Company Loan";
+          t.category = "Loan";
           t.isCompanyLoan = true;
           t.isCompanyVisaLoan = true;
           if (t.detail) {
@@ -5234,9 +6193,7 @@ create policy "Allow public all" on public."RiderKhatabook"
 
     function saveToStorage(notify = true, syncCloud = true) {
       try {
-        if (syncCloud) {
-          appState.savedAt = new Date().toISOString();
-        }
+        appState.savedAt = new Date().toISOString();
         // ALWAYS write to the active Khata's own isolated storage key
         const key = getKhataStorageKey(activeKhataId);
         safeSetItem(key, JSON.stringify({
@@ -5246,6 +6203,9 @@ create policy "Allow public all" on public."RiderKhatabook"
           fixed_rate: appState.fixed_rate,
           monthlyRates: appState.monthlyRates || {},
           agreedMonthlyRent: appState.agreedMonthlyRent,
+          customOrderStart: appState.customOrderStart || "",
+          customOrderEnd: appState.customOrderEnd || "",
+          activeOrderCycle: appState.activeOrderCycle || "CUSTOM",
           monthlyRentRates: appState.monthlyRentRates || {},
           transactions: appState.transactions || [],
           roomRentRecords: appState.roomRentRecords || [],
@@ -5390,18 +6350,53 @@ create policy "Allow public all" on public."RiderKhatabook"
       if (tabId === "orders") renderOrders();
       if (tabId === "food") renderFood();
       if (tabId === "roomrent") renderRoomRent();
-      if (tabId === "lenden") renderLenDen();
+      if (tabId === "lenden") renderLoan();
       if (tabId === "remittance") renderRemittance();
       if (tabId === "statement") renderStatementTable();
       if (tabId === "admin") renderAdminPortal();
     }
 
+    function getActiveCurrency() {
+      const khataObj = (userKhatas || []).find(k => k.id === activeKhataId);
+      return (khataObj && khataObj.currency) ? khataObj.currency : "AED";
+    }
+
+    function updateAllCurrencyLabels() {
+      const curr = getActiveCurrency();
+      document.querySelectorAll('.app-currency-label').forEach(el => {
+        el.textContent = curr;
+      });
+
+      // Update static preview text nodes that might have AED
+      const updateEl = (id) => {
+        const el = document.getElementById(id);
+        if (el && el.textContent) {
+          el.textContent = el.textContent.replace(/\bAED\b/g, curr);
+        }
+      };
+      [
+        "kpiBalance", "kpiMonthlySalarySub", "chartHighlightVal", "dashNetWorthVal",
+        "lenDenNetTotal", "sheetOrdersEarnSubText", "totalOrdersEarning", "foodTotalSum",
+        "totalLoanDiye", "totalLoanLiye", "accLedgerGiven", "accLedgerReceived",
+        "accLedgerNet", "subBannerDiye", "subBannerLiye", "subBannerNet",
+        "ldNetBreakdownText", "ldNetVerdictText", "inspectModalDebt", "inspectModalCash",
+        "inspectModalRepaid", "dashVisaLoanPaid", "dashVisaMonthCut", "kpiMonthlyOrdersEarnings"
+      ].forEach(updateEl);
+
+      const drawerSub = document.getElementById("drawerKhataSub");
+      const activeObj = (userKhatas || []).find(k => k.id === activeKhataId);
+      if (drawerSub && activeObj) {
+        drawerSub.textContent = `Active: ${activeObj.name} (${curr})`;
+      }
+    }
+
     function renderAll() {
+      updateAllCurrencyLabels();
       renderDashboard();
       renderOrders();
       renderFood();
       renderRoomRent();
-      renderLenDen();
+      renderLoan();
       renderRemittance();
       renderStatementTable();
     }
@@ -5761,7 +6756,7 @@ function applyCustomOrderCycle() {
           totalValue += cin;
         });
 
-        if (valDisplay) valDisplay.textContent = `${totalValue.toFixed(2)} AED`;
+        if (valDisplay) valDisplay.textContent = `${totalValue.toFixed(2)} ${getActiveCurrency()}`;
         if (subDisplay) {
           subDisplay.textContent = totalValue > 0
             ? `Total Salary, Incentives & Inflow · Active Month`
@@ -5791,7 +6786,7 @@ function applyCustomOrderCycle() {
           totalValue += expPortion;
         });
 
-        if (valDisplay) valDisplay.textContent = `${totalValue.toFixed(2)} AED`;
+        if (valDisplay) valDisplay.textContent = `${totalValue.toFixed(2)} ${getActiveCurrency()}`;
         if (subDisplay) {
           subDisplay.textContent = totalValue > 0
             ? `Total Expenses & Outflows · Active Month`
@@ -5869,10 +6864,10 @@ function applyCustomOrderCycle() {
         if (c.rawVal > 0) {
           dotsSvg += `<circle cx="${c.x.toFixed(1)}" cy="${c.y.toFixed(1)}" r="${isPeak ? 4.5 : 2.5}" fill="${isPeak ? '#b45309' : '#d97706'}" stroke="#ffffff" stroke-width="1.5" />`;
         }
-        hitboxesSvg += `<rect x="${(c.x - barW / 2).toFixed(1)}" y="${padTop}" width="${barW.toFixed(1)}" height="${plotH}" fill="transparent" class="cursor-pointer" onclick="showChartPointTooltip(${c.day}, ${c.rawVal}, ${c.x.toFixed(1)}, ${c.y.toFixed(1)})" onmouseenter="showChartPointTooltip(${c.day}, ${c.rawVal}, ${c.x.toFixed(1)}, ${c.y.toFixed(1)})"><title>Day ${String(c.day).padStart(2, '0')}: ${c.rawVal.toFixed(2)} AED</title></rect>`;
+        hitboxesSvg += `<rect x="${(c.x - barW / 2).toFixed(1)}" y="${padTop}" width="${barW.toFixed(1)}" height="${plotH}" fill="transparent" class="cursor-pointer" onclick="showChartPointTooltip(${c.day}, ${c.rawVal}, ${c.x.toFixed(1)}, ${c.y.toFixed(1)})" onmouseenter="showChartPointTooltip(${c.day}, ${c.rawVal}, ${c.x.toFixed(1)}, ${c.y.toFixed(1)})"><title>Day ${String(c.day).padStart(2, '0')}: ${c.rawVal.toFixed(2)} ${getActiveCurrency()}</title></rect>`;
       });
 
-      const tooltipVal = (peak.rawVal > 0) ? `${peak.rawVal.toFixed(0)} AED` : '0 AED';
+      const tooltipVal = (peak.rawVal > 0) ? `${peak.rawVal.toFixed(0)} ${getActiveCurrency()}` : `0 ${getActiveCurrency()}`;
       const tooltipDayLabel = (peak.rawVal > 0) ? `Day ${String(peak.day).padStart(2, '0')}` : 'Overview';
       const tooltipSvg = `
         <g id="chartActiveTooltip" transform="translate(${Math.min(Math.max(peak.x - 38, 10), svgW - 86)}, ${Math.max(peak.y - 34, 2)})" style="transition: transform 0.15s ease-out; pointer-events: none;">
@@ -5916,7 +6911,7 @@ function applyCustomOrderCycle() {
       const posX = Math.min(Math.max(x - 38, 10), svgW - 86);
       const posY = Math.max(y - 34, 2);
       tooltipG.setAttribute('transform', `translate(${posX}, ${posY})`);
-      tooltipText.textContent = `${val.toFixed(0)} AED`;
+      tooltipText.textContent = `${val.toFixed(0)} ${getActiveCurrency()}`;
       if (dayText) dayText.textContent = `Day ${String(day).padStart(2, '0')}`;
     }
 
@@ -6029,7 +7024,7 @@ function applyCustomOrderCycle() {
         const pName = String(t.person || '').toLowerCase();
         const isFhVisa = t.isCompanyVisaLoan || (t.detail && t.detail.toLowerCase().includes("visa deduction"));
         const isRoomRent = t.isRoomRent || (t.detail && t.detail.toLowerCase().includes("room rent")) || String(t.id || '').startsWith("rr_zv_");
-        if (isFhVisa || isRoomRent || c.includes("home send") || (t.category === "Len Den" || t.category === "LenDen")) return;
+        if (isFhVisa || isRoomRent || c.includes("home send") || (t.category === "Loan" || t.category === "Loan")) return;
 
         const matchesDate = !targetDate || (toIsoDate(t.date) === targetDate);
         if (matchesDate) {
@@ -6066,7 +7061,7 @@ function applyCustomOrderCycle() {
                 <span class="font-bold text-slate-800">${escapeHtml(item.category)}</span>
                 <span class="text-slate-500">${escapeHtml(item.detail || '-')}</span>
               </div>
-              <span class="font-mono font-bold text-rose-600">${parseFloat(item.cash_out).toFixed(2)} AED</span>
+              <span class="font-mono font-bold text-rose-600">${parseFloat(item.cash_out).toFixed(2)} ${getActiveCurrency()}</span>
             `;
             entriesList.appendChild(div);
           });
@@ -6082,7 +7077,10 @@ function applyCustomOrderCycle() {
       if (elNetBachat) elNetBachat.textContent = netCashToDisplay.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       
       const elBalance = document.getElementById("kpiBalance");
-      if (elBalance) elBalance.textContent = `${netCashToDisplay.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} AED`;
+      if (elBalance) elBalance.textContent = `${netCashToDisplay.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${getActiveCurrency()}`;
+
+      const openingEl = document.getElementById("dashHeroOpeningVal");
+      if (openingEl) openingEl.textContent = (parseFloat(appState.openingBalance) || 0).toFixed(2);
 
       const heroSubEl = document.getElementById("heroCashSubtitle");
       if (heroSubEl) {
@@ -6102,7 +7100,7 @@ function applyCustomOrderCycle() {
       if (elSalary) elSalary.textContent = inc.totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       const elSalarySub = document.getElementById("kpiMonthlySalarySub");
       if (elSalarySub) {
-        elSalarySub.textContent = `Salary: ${inc.grossSalary.toFixed(2)} + Incentive: ${inc.incentives.toFixed(2)} AED`;
+        elSalarySub.textContent = `Salary: ${inc.grossSalary.toFixed(2)} + Incentive: ${inc.incentives.toFixed(2)} ${getActiveCurrency()}`;
       }
 
       // D. Total Expenses / Outflows Card (Har qisam ka outflow shamil hy)
@@ -6140,7 +7138,7 @@ function applyCustomOrderCycle() {
 
       // G. Financial Position & Net Worth Card
       const elNetWorth = document.getElementById("dashNetWorthVal");
-      if (elNetWorth) elNetWorth.textContent = `${fp.netWorth.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} AED`;
+      if (elNetWorth) elNetWorth.textContent = `${fp.netWorth.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${getActiveCurrency()}`;
       const elTotAssets = document.getElementById("dashTotalAssets");
       if (elTotAssets) elTotAssets.textContent = fp.totalAssets.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       const elTotLiab = document.getElementById("dashTotalLiabilities");
@@ -6161,8 +7159,8 @@ function applyCustomOrderCycle() {
         const pName = (t.person || '').toLowerCase();
         const isFhVisa = t.isCompanyVisaLoan || (t.detail && t.detail.toLowerCase().includes("visa deduction"));
         const isRoomRent = t.isRoomRent || (t.detail && t.detail.toLowerCase().includes("room rent")) || String(t.id || '').startsWith("rr_zv_");
-        const isLenDen = (t.category === "Len Den" || t.category === "LenDen" || t.category === "Len Den (Udhar Khata)" || isRoomRent || isFhVisa);
-        if (isLenDen) return;
+        const isLoan = (t.category === "Loan" || t.category === "Loan" || t.category === "Loan" || isRoomRent || isFhVisa);
+        if (isLoan) return;
 
         const c = t.category || "Other";
         if (!catMap[c]) catMap[c] = { count: 0, cin: 0, cout: 0 };
@@ -6195,7 +7193,7 @@ function applyCustomOrderCycle() {
         }
       }
 
-      // I. Len Den Quick List
+      // I. Loan Quick List
       const qList = document.getElementById("lenDenQuickList");
       if (qList) {
         qList.innerHTML = "";
@@ -6208,13 +7206,13 @@ function applyCustomOrderCycle() {
           div.innerHTML = `
             <span class="font-bold text-slate-700">${escapeHtml(name)}</span>
             <span class="font-mono font-bold ${p.net > 0 ? 'text-emerald-600' : p.net < 0 ? 'text-rose-600' : 'text-slate-400'}">
-              ${p.net > 0 ? '+' : ''}${p.net.toFixed(2)} AED (${escapeHtml(p.status)})
+              ${p.net > 0 ? '+' : ''}${p.net.toFixed(2)} ${getActiveCurrency()} (${escapeHtml(p.status)})
             </span>
           `;
           qList.appendChild(div);
         });
         const lenDenNetEl = document.getElementById("lenDenNetTotal");
-        if (lenDenNetEl) lenDenNetEl.textContent = `${netUdhar.toFixed(2)} AED`;
+        if (lenDenNetEl) lenDenNetEl.textContent = `${netUdhar.toFixed(2)} ${getActiveCurrency()}`;
       }
     
       renderEarningChart();
@@ -6228,7 +7226,7 @@ function applyCustomOrderCycle() {
       let totalCount = 0;
       let totalEarn = 0;
 
-      // Sync editable custom cycle inputs
+      // Sync editable custom cycle inputs (Strict persistence: keeps user selected cycle)
       const fromInput = document.getElementById("orderCycleFromDate");
       const toInput = document.getElementById("orderCycleToDate");
       const activeLabel = document.getElementById("orderCycleActiveLabel");
@@ -6242,8 +7240,8 @@ function applyCustomOrderCycle() {
           const lastDay = new Date(y, m + 1, 0).getDate();
           appState.customOrderEnd = `${y}-${String(m + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
         }
-        if (!fromInput.value) fromInput.value = appState.customOrderStart;
-        if (!toInput.value) toInput.value = appState.customOrderEnd;
+        fromInput.value = appState.customOrderStart;
+        toInput.value = appState.customOrderEnd;
       }
 
       if (activeLabel) {
@@ -6288,7 +7286,7 @@ function applyCustomOrderCycle() {
       const elTotalCount = document.getElementById("totalOrdersCount");
       if (elTotalCount) elTotalCount.textContent = totalCount;
       const elTotalEarn = document.getElementById("totalOrdersEarning");
-      if (elTotalEarn) elTotalEarn.textContent = `${totalEarn.toFixed(2)} AED`;
+      if (elTotalEarn) elTotalEarn.textContent = `${totalEarn.toFixed(2)} ${getActiveCurrency()}`;
 
       const currentCycleRate = Number(appState.fixed_rate) > 0 ? Number(appState.fixed_rate) : 7.80;
       const elFixedRate = document.getElementById("lblFixedRate");
@@ -6373,7 +7371,7 @@ function applyCustomOrderCycle() {
       if (elEarnDailyAvg) elEarnDailyAvg.textContent = `${earnAvg}/day`;
       const elEarnSub = document.getElementById("sheetOrdersEarnSubText");
       if (elEarnSub) {
-        elEarnSub.textContent = totalDays > 0 ? `${earnAvg} AED/day avg (${totalDays} total days)` : "0.00 AED/day avg";
+        elEarnSub.textContent = totalDays > 0 ? `${earnAvg} ${getActiveCurrency()}/day avg (${totalDays} total days)` : `0.00 ${getActiveCurrency()}/day avg`;
       }
 
       const sheetDays = document.getElementById("sheetOrdersActiveDays");
@@ -6399,8 +7397,8 @@ function applyCustomOrderCycle() {
         const isRoomRent = t.isRoomRent || (t.detail && t.detail.toLowerCase().includes("room rent")) || String(t.id || '').startsWith("rr_zv_");
         if (isFhVisa || isRoomRent || c.includes("home send") || c.includes("remittance")) return false;
         
-        const isGeneralLenDen = (t.category === "Len Den" || t.category === "LenDen" || t.category === "Len Den (Udhar Khata)");
-        if (isGeneralLenDen) return false;
+        const isGeneralLoan = (t.category === "Loan" || t.category === "Loan" || t.category === "Loan");
+        if (isGeneralLoan) return false;
         
         return true;
       }).sort((a, b) => toIsoDate(b.date).localeCompare(toIsoDate(a.date)));
@@ -6445,7 +7443,7 @@ function applyCustomOrderCycle() {
       if (sOC) sOC.textContent = `${otherCount} records`;
 
       const elFt = document.getElementById("foodTotalSum");
-      if (elFt) elFt.textContent = `${livingTotal.toFixed(2)} AED`;
+      if (elFt) elFt.textContent = `${livingTotal.toFixed(2)} ${getActiveCurrency()}`;
 
       const catFilter = document.getElementById("expCategoryFilter") ? document.getElementById("expCategoryFilter").value : "ALL";
       const searchQ = document.getElementById("expSearch") ? (document.getElementById("expSearch").value || "").trim().toLowerCase() : "";
@@ -6505,7 +7503,7 @@ function applyCustomOrderCycle() {
     }
 
     // ================= 4. LOANS & LEN DEN =================
-    function renderLenDen() {
+    function renderLoan() {
       const pContainer = document.getElementById("personSummaryCards");
       pContainer.innerHTML = "";
 
@@ -6514,7 +7512,7 @@ function applyCustomOrderCycle() {
 
       const rentSummary = AccountingEngine.getRoomRentSummary();
       const visaSummary = AccountingEngine.getVisaLoanSummary();
-      const ldSummary = AccountingEngine.getLenDenSummary();
+      const ldSummary = AccountingEngine.getLoanSummary();
 
       const rrDebt = Math.max(0, rentSummary.outstanding || 0);
       const rrAdvance = rentSummary.outstanding < 0 ? Math.abs(rentSummary.outstanding) : 0;
@@ -6558,7 +7556,7 @@ function applyCustomOrderCycle() {
             netBadgeEl.textContent = "Receivable (Due)";
             netBadgeEl.className = "text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
           }
-          if (netVerdictEl) netVerdictEl.textContent = `Net Result: ${overallNet.toFixed(2)} AED Receivable (+)`;
+          if (netVerdictEl) netVerdictEl.textContent = `Net Result: ${overallNet.toFixed(2)} ${getActiveCurrency()} Receivable (+)`;
           if (netIconEl) netIconEl.className = "w-11 h-11 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 flex items-center justify-center text-xl font-bold flex-shrink-0";
         } else if (overallNet < 0) {
           netAmountEl.textContent = `-${Math.abs(overallNet).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
@@ -6566,7 +7564,7 @@ function applyCustomOrderCycle() {
             netBadgeEl.textContent = "Payable (Owed)";
             netBadgeEl.className = "text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30";
           }
-          if (netVerdictEl) netVerdictEl.textContent = `Net Result: ${Math.abs(overallNet).toFixed(2)} AED Payable (−)`;
+          if (netVerdictEl) netVerdictEl.textContent = `Net Result: ${Math.abs(overallNet).toFixed(2)} ${getActiveCurrency()} Payable (−)`;
           if (netIconEl) netIconEl.className = "w-11 h-11 rounded-2xl bg-rose-500/20 border border-rose-500/40 text-rose-300 flex items-center justify-center text-xl font-bold flex-shrink-0";
         } else {
           netAmountEl.textContent = "0.00";
@@ -6574,12 +7572,12 @@ function applyCustomOrderCycle() {
             netBadgeEl.textContent = "Settled (Clear)";
             netBadgeEl.className = "text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30";
           }
-          if (netVerdictEl) netVerdictEl.textContent = "Net Result: Settled (0.00 AED)";
+          if (netVerdictEl) netVerdictEl.textContent = `Net Result: Settled (0.00 ${getActiveCurrency()})`;
           if (netIconEl) netIconEl.className = "w-11 h-11 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-300 flex items-center justify-center text-xl font-bold flex-shrink-0";
         }
       }
       if (netBreakdownEl) {
-        netBreakdownEl.textContent = `Receivables: ${totalKulLene.toFixed(2)} AED − Payables: ${totalKulDene.toFixed(2)} AED`;
+        netBreakdownEl.textContent = `Receivables: ${totalKulLene.toFixed(2)} ${getActiveCurrency()} − Payables: ${totalKulDene.toFixed(2)} ${getActiveCurrency()}`;
       }
 
       let personNames = Object.keys(appState.persons);
@@ -6601,7 +7599,7 @@ function applyCustomOrderCycle() {
           const opt = document.createElement("option");
           opt.value = pName;
           const pData = appState.persons[pName];
-          opt.textContent = `${pName} (${Math.abs(pData.net).toFixed(2)} AED - ${pData.status})`;
+          opt.textContent = `${pName} (${Math.abs(pData.net).toFixed(2)} ${getActiveCurrency()} - ${pData.status})`;
           tableSelect.appendChild(opt);
         });
         if (currentVal && (currentVal === "ALL" || allPersons.includes(currentVal))) {
@@ -6616,7 +7614,7 @@ function applyCustomOrderCycle() {
         const card = document.createElement("div");
         const isLene = p.net > 0;
         const isDene = p.net < 0;
-        const personCurrency = "AED";
+        const personCurrency = getActiveCurrency();
         const isSelected = (selectedPerson === name);
         
         card.className = `p-3.5 rounded-xl border ${isSelected ? 'ring-2 ring-purple-600 bg-purple-50/50' : (isLene ? 'bg-emerald-50/60 border-emerald-200' : 'bg-rose-50/60 border-rose-200')} shadow-xs relative transition`;
@@ -6657,7 +7655,11 @@ function applyCustomOrderCycle() {
         pContainer.appendChild(card);
       });
 
-      const allLdTxs = appState.transactions.filter(t => ["Len Den", "LenDen", "Len Den (Udhar Khata)"].includes(String(t.category || "").trim())).sort((a, b) => toIsoDate(a.date).localeCompare(toIsoDate(b.date)));
+      const allLdTxs = appState.transactions.filter(t => {
+        const cat = String(t.category || '').toLowerCase();
+        const pLower = String(t.person || '').toLowerCase();
+        return cat.includes('len den') || cat.includes('lenden') || cat.includes('loan') || cat.includes('room rent') || t.isRoomRent || pLower.includes('room rent') || pLower.includes('company');
+      }).sort((a, b) => toIsoDate(a.date).localeCompare(toIsoDate(b.date)));
       
       let ldTxs = allLdTxs;
       if (selectedPerson && selectedPerson !== "ALL") {
@@ -6674,9 +7676,9 @@ function applyCustomOrderCycle() {
           const statusEl = document.getElementById("subBannerStatus");
           statusEl.textContent = p.status;
           statusEl.className = `text-[10px] font-bold px-1.5 py-0.5 rounded ${p.net > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`;
-          document.getElementById("subBannerDiye").textContent = `${p.diye.toFixed(2)} AED`;
-          document.getElementById("subBannerLiye").textContent = `${p.liye.toFixed(2)} AED`;
-          document.getElementById("subBannerNet").textContent = `${Math.abs(p.net).toFixed(2)} AED (${p.status})`;
+          document.getElementById("subBannerDiye").textContent = `${p.diye.toFixed(2)} ${getActiveCurrency()}`;
+          document.getElementById("subBannerLiye").textContent = `${p.liye.toFixed(2)} ${getActiveCurrency()}`;
+          document.getElementById("subBannerNet").textContent = `${Math.abs(p.net).toFixed(2)} ${getActiveCurrency()} (${p.status})`;
         }
         if (titleEl) titleEl.textContent = `Statement — ${selectedPerson}`;
       } else {
@@ -6715,8 +7717,8 @@ function applyCustomOrderCycle() {
 
       const aedOut = ldTxs.reduce((s,t) => s + (parseFloat(t.cash_out)||0), 0);
       const aedIn = ldTxs.reduce((s,t) => s + (parseFloat(t.cash_in)||0), 0);
-      document.getElementById("totalLenDenDiye").textContent = `${aedOut.toFixed(2)} AED`;
-      document.getElementById("totalLenDenLiye").textContent = `${aedIn.toFixed(2)} AED`;
+      document.getElementById("totalLoanDiye").textContent = `${aedOut.toFixed(2)} ${getActiveCurrency()}`;
+      document.getElementById("totalLoanLiye").textContent = `${aedIn.toFixed(2)} ${getActiveCurrency()}`;
       document.getElementById("lenDenEntryCount").textContent = `${ldTxs.length} entries`;
     }
 
@@ -6735,10 +7737,11 @@ function applyCustomOrderCycle() {
 
       if (titleEl) titleEl.textContent = personName;
 
-      // Filter entries for this person
+      // Filter entries for this person (supports Company Loan & Room Rent)
       const entries = (appState.transactions || []).filter(t => {
-        const p = String(t.person || '').trim().toLowerCase();
-        return p === personName.trim().toLowerCase();
+        const p = sanitizeAccountName(String(t.person || '')).toLowerCase();
+        const target = sanitizeAccountName(personName).toLowerCase();
+        return p === target;
       }).sort((a, b) => toIsoDate(b.date).localeCompare(toIsoDate(a.date)));
 
       // Directly calculate exact live totals from this account's entries (Zero stale cache!)
@@ -6758,10 +7761,10 @@ function applyCustomOrderCycle() {
       const netBalance = totalGiven - totalReceived;
       const statusText = netBalance > 0 ? "Receivable" : (netBalance < 0 ? "Payable" : "Settled");
 
-      if (givenEl) givenEl.textContent = `${totalGiven.toFixed(2)} AED`;
-      if (receivedEl) receivedEl.textContent = `${totalReceived.toFixed(2)} AED`;
+      if (givenEl) givenEl.textContent = `${totalGiven.toFixed(2)} ${getActiveCurrency()}`;
+      if (receivedEl) receivedEl.textContent = `${totalReceived.toFixed(2)} ${getActiveCurrency()}`;
       if (netEl) {
-        netEl.textContent = `${Math.abs(netBalance).toFixed(2)} AED`;
+        netEl.textContent = `${Math.abs(netBalance).toFixed(2)} ${getActiveCurrency()}`;
         netEl.className = `font-mono font-black text-sm ${netBalance > 0 ? 'text-emerald-700' : netBalance < 0 ? 'text-rose-700' : 'text-slate-800'}`;
       }
       if (badgeEl) {
@@ -6993,7 +7996,7 @@ function applyCustomOrderCycle() {
 
     function exportPersonLedgerPDF(personName) {
       const rows = (appState.transactions || [])
-        .filter(t => ['Loan', 'Loans', 'Len Den', 'LenDen', 'Len Den (Udhar Khata)'].includes(String(t.category || '').trim()) && String(t.person || '').trim().toLowerCase() === String(personName || '').trim().toLowerCase())
+        .filter(t => ['Loan', 'Loans', 'Loan', 'Loan', 'Loan'].includes(String(t.category || '').trim()) && String(t.person || '').trim().toLowerCase() === String(personName || '').trim().toLowerCase())
         .sort((a, b) => toIsoDate(a.date).localeCompare(toIsoDate(b.date)));
       if (!rows.length) { showToast('No records found for this account.', false); return; }
       const esc = v => escapeHtml(String(v == null ? '' : v));
@@ -7113,7 +8116,7 @@ function applyCustomOrderCycle() {
 
       // Construct pipe-separated totals string matching 190277.jpg:
       // "1000.00 AED | 15,000.00 INR | 37,750.00 PKR"
-      const totalsList = [`${totalSentAed.toFixed(2)} AED`];
+      const totalsList = [`${totalSentAed.toFixed(2)} ${getActiveCurrency()}`];
       Object.keys(currencyTotals).sort().forEach(ck => {
         const v = currencyTotals[ck];
         totalsList.push(`${v.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} ${ck}`);
@@ -7240,16 +8243,21 @@ function applyCustomOrderCycle() {
           tr.className = "hover:bg-slate-50 transition";
           const cin = parseFloat(t.cash_in) || 0;
           const cout = parseFloat(t.cash_out) || 0;
+          let displayAccount = t.person ? t.person : t.category;
+          if (displayAccount === 'Loan' || displayAccount === 'Loan' || displayAccount === 'Loan') {
+            displayAccount = 'Loan';
+          }
+          if (!displayAccount) displayAccount = 'Other';
+
           tr.innerHTML = `
             <td class="py-2.5 px-3 font-semibold text-slate-800 whitespace-nowrap">${escapeHtml(t.date)}</td>
-            <td class="py-2.5 px-3">
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${cin > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
-                ${escapeHtml(t.category)}
+            <td class="py-2.5 px-3 whitespace-nowrap">
+              <span class="px-2.5 py-1 rounded-full text-[10px] font-bold ${cin > 0 ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-rose-100 text-rose-800 border border-rose-200'} inline-block">
+                ${escapeHtml(displayAccount)}
               </span>
             </td>
             <td class="py-2.5 px-3 text-slate-800 font-medium">
               <div>${escapeHtml(t.detail || '-')}</div>
-              ${t.person ? `<div class="text-[10px] text-purple-700 font-bold">${escapeHtml(t.person)}</div>` : ''}
             </td>
             <td class="py-2.5 px-3 text-right font-mono font-bold whitespace-nowrap ${t.isAutoRentCharge ? 'text-amber-800' : 'text-emerald-700'}">${cin > 0 ? (t.isAutoRentCharge ? `<div>${cin.toFixed(2)}</div><div class="text-[9px] text-amber-700 font-bold leading-tight">(Charge)</div>` : '+' + cin.toFixed(2)) : '—'}</td>
             <td class="py-2.5 px-3 text-right font-mono font-bold text-rose-600 whitespace-nowrap">${cout > 0 ? '−' + cout.toFixed(2) : '—'}</td>
@@ -7488,7 +8496,7 @@ function applyCustomOrderCycle() {
     }
 
     function openAddVisaDeductionModal() {
-      openAddModal('LenDen');
+      openAddModal('Loan');
       populatePersonSelect('Company Loan');
       document.getElementById('lenDenPersonSelect').value = 'Company Loan';
       const inp = document.getElementById('lenDenNewPersonInput');
@@ -7550,7 +8558,7 @@ function applyCustomOrderCycle() {
           } else if (type === "Other Expenses" || type === "Kharcha" || type === "Mobile") {
             catSelect.value = "Other Expenses";
             if (titleEl) titleEl.textContent = "Add Other Expense";
-          } else if (type === "Loan" || type === "LenDen") {
+          } else if (type === "Loan" || type === "Loan") {
             catSelect.value = "Loan";
             if (titleEl) titleEl.textContent = "Add Loan / Advance";
             populatePersonSelect("");
@@ -7607,7 +8615,7 @@ function applyCustomOrderCycle() {
       if (cat && (cat.value === "Orders" || cat.value === "Order")) document.getElementById("entryAmount").value = earn.toFixed(2);
     }
 
-    function handleLenDenTypeChange() {
+    function handleLoanTypeChange() {
       const lType = document.querySelector('input[name="lenDenType"]:checked')?.value || 'DIYE';
       const intSec = document.getElementById("lenDenInterestSection");
       if (intSec) {
@@ -7622,7 +8630,7 @@ function applyCustomOrderCycle() {
       const remitFields = document.getElementById("remittanceFields");
       const amtField = document.getElementById("amountField");
 
-      const isLoan = (cat === "Loan" || cat === "LenDen" || cat === "Room Rent");
+      const isLoan = (cat === "Loan" || cat === "Loan" || cat === "Room Rent");
       const isOrder = (cat === "Orders" || cat === "Order");
       const isRemit = (cat === "Remittance" || cat === "HomeSend");
 
@@ -7674,7 +8682,7 @@ function applyCustomOrderCycle() {
         } else {
           appState.orders.unshift(newOrd);
         }
-      } else if (cat === "Loan" || cat === "LenDen") {
+      } else if (cat === "Loan" || cat === "Loan") {
         let pName = document.getElementById("lenDenPersonSelect").value;
         if (pName === "NEW") {
           pName = document.getElementById("lenDenNewPersonInput").value.trim() || "Contact";
@@ -7704,7 +8712,7 @@ function applyCustomOrderCycle() {
           id: editId || ("tx_" + Date.now()),
           date: dateVal,
           time: timeVal || new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-          category: "Len Den",
+          category: "Loan",
           person: pName,
           detail: detailVal || autoDetail,
           cash_in: lType === "LIYE" ? principalAmt : 0.0,
@@ -7713,7 +8721,7 @@ function applyCustomOrderCycle() {
           interest_amount: interestAmt,
           isReal: isReal,
           month: monthVal,
-          currency: "AED",
+          currency: getActiveCurrency(),
           isCompanyVisaLoan: isFh,
           isLoanDeduction: isFh && (lType === "DIYE"),
           isLoanPrincipal: isFh && (lType === "LIYE")
@@ -7796,7 +8804,7 @@ function applyCustomOrderCycle() {
           isRoomRent: isRoomRent,
           person: isRoomRent ? "Room Rent" : undefined,
           country: isRemittance ? countryVal : undefined,
-          currency: isRemittance ? remitCurrVal : (isRoomRent ? "AED" : undefined),
+          currency: isRemittance ? remitCurrVal : (isRoomRent ? (isPrimary ? "AED" : getActiveCurrency()) : getActiveCurrency()),
           target_currency: isRemittance ? remitCurrVal : undefined,
           exchange_rate: isRemittance && remitRateVal > 0 ? remitRateVal : undefined,
           received_amount: isRemittance && remitReceivedVal > 0 ? remitReceivedVal : undefined
@@ -7852,7 +8860,7 @@ function applyCustomOrderCycle() {
       const catSelect = document.getElementById("entryCategory");
       if (t.category === "Salary" || t.isSalary) {
         catSelect.value = "Salary";
-      } else if (t.category === "Loan" || t.category === "Len Den" || t.category === "LenDen") {
+      } else if (t.category === "Loan" || t.category === "Loan" || t.category === "Loan") {
         catSelect.value = "Loan";
         populatePersonSelect(t.person || "Personal Account");
         document.getElementById("lenDenPersonSelect").value = t.person || "Personal Account";
@@ -8027,7 +9035,12 @@ function applyCustomOrderCycle() {
     function recomputePersonSummary() {
       const pMap = {};
 
-      (appState.transactions || []).filter(t => (t.category === "Len Den" || t.category === "LenDen" || t.category === "Len Den (Udhar Khata)") && t.person).forEach(t => {
+      (appState.transactions || []).forEach(t => {
+        const cat = String(t.category || '').toLowerCase();
+        const pLower = String(t.person || '').toLowerCase();
+        const isLoan = (cat.includes('len den') || cat.includes('lenden') || cat.includes('loan') || cat.includes('room rent') || t.isRoomRent || pLower.includes('room rent') || pLower.includes('company'));
+        if (!isLoan || !t.person) return;
+
         let p = String(t.person).trim();
         p = sanitizeAccountName(p);
         if (!pMap[p]) pMap[p] = { diye: 0, liye: 0, net: 0, status: "Clear", notes: "" };
@@ -8076,7 +9089,7 @@ function applyCustomOrderCycle() {
           o.rate = nr;
           o.earnings = (parseInt(o.count, 10) || 0) * nr;
         });
-        showToast(`✅ Default rate of ${nr.toFixed(2)} AED set for all delivery cycles!`);
+        showToast(`✅ Default rate of ${nr.toFixed(2)} ${getActiveCurrency()} set for all delivery cycles!`);
       } else {
         appState.monthlyRates[cycleKey] = nr;
         (appState.orders || []).forEach(o => {
@@ -8091,7 +9104,7 @@ function applyCustomOrderCycle() {
         if (orderSelect) orderSelect.value = cycleKey;
 
         const cInfo = getBillingCycleInfo(cycleKey);
-        showToast(`✅ Rate of ${nr.toFixed(2)} AED applied to ${cInfo.label}!`);
+        showToast(`✅ Rate of ${nr.toFixed(2)} ${getActiveCurrency()} applied to ${cInfo.label}!`);
       }
 
       saveToStorage(false);
@@ -8197,7 +9210,7 @@ function applyCustomOrderCycle() {
       saveToStorage(true);
       closeModal("modalRent");
       renderAll();
-      showToast(`🏠 Monthly rent of ${rent.toFixed(2)} AED saved successfully!`);
+      showToast(`🏠 Monthly rent of ${rent.toFixed(2)} ${getActiveCurrency()} saved successfully!`);
     }
 
     // Drawer, Quick Action Hub & Navigation Utilities
@@ -8315,6 +9328,7 @@ function applyCustomOrderCycle() {
         fixed_rate: appState.fixed_rate,
         monthlyRates: appState.monthlyRates || {},
         agreedMonthlyRent: appState.agreedMonthlyRent,
+          openingBalance: appState.openingBalance || 0,
         monthlyRentRates: appState.monthlyRentRates || {},
         transactions: appState.transactions,
         roomRentRecords: appState.roomRentRecords,
@@ -8530,14 +9544,14 @@ function applyCustomOrderCycle() {
       if (!exportAll && q) txs = txs.filter(t => (t.detail || '').toLowerCase().includes(q) || (t.date || '').toLowerCase().includes(q) || (t.person || '').toLowerCase().includes(q));
 
       let csv = "TRANSACTIONS STATEMENT\n";
-      csv += "Date,Time,Category,Detail,Person,Cash In (AED),Cash Out (AED),Month\n";
+      csv += "Date,Time,Category,Detail,Person,Cash In (" + getActiveCurrency() + "),Cash Out (" + getActiveCurrency() + "),Month\n";
       txs.forEach(t => {
         csv += `"${t.date || ''}","${t.time || ''}","${t.category || ''}","${(t.detail || '').replace(/"/g, '""')}","${t.person || ''}","${t.cash_in || 0}","${t.cash_out || 0}","${t.month || ''}"\n`;
       });
 
       if ((appState.orders || []).length > 0) {
         csv += "\nDAILY ORDERS & DELIVERIES\n";
-        csv += "Date,Day,Deliveries Count,Rate (AED),Earnings (AED),Notes\n";
+        csv += "Date,Day,Deliveries Count,Rate (" + getActiveCurrency() + "),Earnings (" + getActiveCurrency() + "),Notes\n";
         (appState.orders || []).forEach(o => {
           csv += `"${o.date || ''}","${o.day || ''}","${o.count || 0}","${o.rate || 0}","${o.earnings || 0}","${(o.notes || '').replace(/"/g, '""')}"\n`;
         });
@@ -9170,7 +10184,9 @@ function applyCustomOrderCycle() {
       const adminActive = isSuperAdmin();
       const settingsAdminBtn = document.getElementById("settingsAdminBtn");
 
-      // Strictly Secret: Only show Super Admin controls if logged in as Owner!
+      // Strictly Secret: Only show Super Admin controls and Cloud Sync Badge to Admin!
+      const headerSyncBtn = document.getElementById("headerSyncBtn");
+      if (headerSyncBtn) headerSyncBtn.classList.toggle("hidden", !adminActive);
       if (drawerAdminBtn) drawerAdminBtn.classList.toggle("hidden", !adminActive);
       if (tabBtnAdmin) tabBtnAdmin.classList.toggle("hidden", !adminActive);
       if (headerAdminBtn) headerAdminBtn.classList.toggle("hidden", !adminActive);
@@ -9375,11 +10391,11 @@ function applyCustomOrderCycle() {
               ${orders} Days
             </td>
             <td class="py-2.5 px-2 text-right font-mono font-bold text-rose-600">
-              ${debt.toFixed(2)} AED
+              ${debt.toFixed(2)} ${getActiveCurrency()}
               <div class="text-[10px] text-slate-400 font-normal">Repaid: ${repaid.toFixed(2)}</div>
             </td>
             <td class="py-2.5 px-2 text-right font-mono font-bold ${netCash >= 0 ? 'text-emerald-700' : 'text-rose-600'}">
-              ${netCash.toFixed(2)} AED
+              ${netCash.toFixed(2)} ${getActiveCurrency()}
             </td>
             <td class="py-2.5 px-2 text-center whitespace-nowrap">
               <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">Active</span>
@@ -9392,11 +10408,11 @@ function applyCustomOrderCycle() {
       tbody.innerHTML = html;
 
       const cLoanEl = document.getElementById("adminCompanyLoanTotal");
-      if (cLoanEl) cLoanEl.textContent = totalPackageCo.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " AED";
+      if (cLoanEl) cLoanEl.textContent = totalPackageCo.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " " + getActiveCurrency();
       const recEl = document.getElementById("adminLoanRecoveredTotal");
-      if (recEl) recEl.textContent = totalRepaidCo.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " AED";
+      if (recEl) recEl.textContent = totalRepaidCo.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " " + getActiveCurrency();
       const remEl = document.getElementById("adminRemainingDebtTotal");
-      if (remEl) remEl.textContent = totalDebtCo.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " AED";
+      if (remEl) remEl.textContent = totalDebtCo.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " " + getActiveCurrency();
     }
 
     async function refreshAdminRidersList() {
@@ -9512,8 +10528,8 @@ function applyCustomOrderCycle() {
       });
       const debt = Math.max(0, pkg - repaid);
 
-      if (debtEl) debtEl.textContent = `${debt.toFixed(2)} AED`;
-      if (repaidEl) repaidEl.textContent = `${repaid.toFixed(2)} AED`;
+      if (debtEl) debtEl.textContent = `${debt.toFixed(2)} ${getActiveCurrency()}`;
+      if (repaidEl) repaidEl.textContent = `${repaid.toFixed(2)} ${getActiveCurrency()}`;
 
       let cinTot = 0, coutTot = 0;
       (rData.transactions || []).forEach(t => {
@@ -9527,7 +10543,7 @@ function applyCustomOrderCycle() {
       });
       const netCash = cinTot - coutTot;
       if (cashEl) {
-        cashEl.textContent = `${netCash.toFixed(2)} AED`;
+        cashEl.textContent = `${netCash.toFixed(2)} ${getActiveCurrency()}`;
         cashEl.className = netCash >= 0 ? "font-mono text-emerald-700" : "font-mono text-rose-600";
       }
       if (updatedEl) {
@@ -9581,8 +10597,24 @@ function applyCustomOrderCycle() {
 
       // Guarantee Primary Default Khata always exists
       if (!userKhatas.some(k => k.id === "default")) {
-        userKhatas.unshift({ id: "default", name: "Primary Khata (Main)", isDefault: true });
+        userKhatas.unshift({ id: "default", name: "Primary Khata (Main)", currency: "AED", isDefault: true });
       }
+
+      userKhatas.forEach(k => {
+        if (!k.currency) {
+          if (k.id === "default") {
+            k.currency = "AED";
+          } else if (/pakistan|pkr/i.test(k.name)) {
+            k.currency = "PKR";
+          } else if (/india|inr/i.test(k.name)) {
+            k.currency = "INR";
+          } else if (/saudi|sar/i.test(k.name)) {
+            k.currency = "SAR";
+          } else {
+            k.currency = "AED";
+          }
+        }
+      });
 
       const activeSaved = safeGetItem(userKey + "_active_khata");
       if (activeSaved && userKhatas.some(k => k.id === activeSaved)) {
@@ -9606,6 +10638,7 @@ function applyCustomOrderCycle() {
       }
       loadUserKhatasMeta();
       renderKhataList();
+      toggleKhataAddBox(false);
       const emailBadge = document.getElementById("khataUserEmailBadge");
       if (emailBadge) {
         emailBadge.textContent = currentUser.isGuest ? "Guest Mode (Local)" : currentUser.email;
@@ -9617,6 +10650,47 @@ function applyCustomOrderCycle() {
       closeModal("modalKhataManager");
     }
 
+    var isKhataEditModeActive = false;
+
+    function toggleKhataEditMode() {
+      isKhataEditModeActive = !isKhataEditModeActive;
+      const btn = document.getElementById("btnKhataEditMode");
+      if (btn) {
+        btn.textContent = isKhataEditModeActive ? "Done" : "Edit";
+        btn.className = isKhataEditModeActive
+          ? "px-3.5 py-1 rounded-lg bg-slate-900 text-white font-bold text-xs shadow-xs"
+          : "px-3.5 py-1 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 font-bold text-xs transition active:scale-95 shadow-2xs";
+      }
+      renderKhataList();
+    }
+
+    function toggleKhataAddBox(show) {
+      const box = document.getElementById("khataAddBox");
+      const btn = document.getElementById("btnMakeNewBusiness");
+      const inp = document.getElementById("newKhataNameInput");
+      if (!box) return;
+      const willShow = (typeof show === "boolean") ? show : (box.style.display === "none" || box.classList.contains("hidden"));
+      if (willShow) {
+        box.classList.remove("hidden");
+        box.style.display = "flex";
+        if (btn) {
+          btn.classList.add("hidden");
+          btn.style.display = "none";
+        }
+        if (inp) {
+          inp.value = "";
+          setTimeout(() => inp.focus(), 60);
+        }
+      } else {
+        box.classList.add("hidden");
+        box.style.display = "none";
+        if (btn) {
+          btn.classList.remove("hidden");
+          btn.style.display = "flex";
+        }
+      }
+    }
+
     function renderKhataList() {
       const container = document.getElementById("khataListContainer");
       const badge = document.getElementById("khataCountBadge");
@@ -9626,23 +10700,51 @@ function applyCustomOrderCycle() {
 
       let html = "";
       userKhatas.forEach(k => {
-        const isActive = (k.id === activeKhataId);
+        const isActive = (k.id === activeKhataId) || (!activeKhataId && (k.isDefault || k.id === 'default'));
+        const curr = k.currency || "AED";
+
+        let subText = "Dubai debit credits";
+        if (k.isDefault || k.id === 'default') {
+          subText = `Dubai debit credits (${curr})`;
+        } else if (/expense/i.test(k.name)) {
+          subText = `Expenses only (${curr})`;
+        } else {
+          subText = `Other (${curr})`;
+        }
+
+        // Clean Solid Store Icon matching 193294.jpg
+        const storeIcon = `
+          <div style="width: 2.75rem; height: 2.75rem; border-radius: 0.85rem; background-color: ${isActive ? '#e2f1ea' : '#eef3f0'} !important; color: ${isActive ? '#1b6e4e' : '#475569'} !important; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.25rem;">
+            <svg style="width: 1.35rem; height: 1.35rem; fill: currentColor;" viewBox="0 0 24 24">
+              <path d="M4 4h16a1 1 0 0 1 1 1v2a1 1 0 0 1-.293.707L19 9.414V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V9.414L3.293 7.707A1 1 0 0 1 3 7V5a1 1 0 0 1 1-1zm2 7v8h12v-8H6zm-1-5v1.382l1.618 1.618H17.382L19 6.382V6H5z"/>
+            </svg>
+          </div>
+        `;
+
+        // Crisp Solid Radio Button matching 193294.jpg
+        const radioIcon = isActive
+          ? `<div style="width: 1.35rem; height: 1.35rem; border-radius: 9999px; border: 2.5px solid #1b6e4e; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+               <div style="width: 0.65rem; height: 0.65rem; border-radius: 9999px; background-color: #1b6e4e;"></div>
+             </div>`
+          : `<div style="width: 1.35rem; height: 1.35rem; border-radius: 9999px; border: 2px solid #cbd5e1; flex-shrink: 0;"></div>`;
+
         html += `
-          <div class="p-2.5 rounded-2xl border ${isActive ? 'bg-amber-50/80 border-amber-500/50 ring-2 ring-amber-500/30' : 'bg-slate-50 border-slate-200'} flex items-center justify-between transition">
-            <div class="flex items-center space-x-2.5 cursor-pointer flex-1" onclick="switchActiveKhata('${escapeHtml(k.id)}')">
-              <span class="text-lg">${isActive ? '📖' : '📁'}</span>
-              <div>
-                <div class="font-bold text-xs text-slate-900 flex items-center space-x-1.5">
-                  <span>${escapeHtml(k.name)}</span>
-                  ${isActive ? '<span class="px-1.5 py-0.2 rounded-full text-[11px] bg-amber-500/20 text-amber-800 font-extrabold uppercase">Active</span>' : ''}
-                </div>
-                <div class="text-[11px] text-slate-500">${isActive ? 'Currently active Khata' : 'Tap to switch to this Khata'}</div>
+          <div style="padding: 0.65rem 0.75rem; border-radius: 1rem; display: flex; align-items: center; justify-content: space-between; transition: all 0.15s ease; cursor: pointer; background-color: ${isActive ? '#f8fafc' : '#ffffff'}; border: 1px solid ${isActive ? '#e2e8f0' : 'transparent'};" onclick="switchActiveKhata('${escapeHtml(k.id)}')">
+            <div style="display: flex; align-items: center; gap: 0.85rem; flex: 1; min-width: 0; padding-right: 0.5rem;">
+              ${storeIcon}
+              <div style="min-width: 0; flex: 1;">
+                <div style="font-weight: 700; font-size: 0.925rem; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(k.name)}</div>
+                <div style="font-size: 0.75rem; color: #64748b; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(subText)}</div>
               </div>
             </div>
-            <div class="flex items-center space-x-1">
-              ${!k.isDefault ? `<button type="button" onclick="renameKhataBook('${escapeHtml(k.id)}')" class="text-slate-400 hover:text-amber-700 p-1 text-xs" title="Rename Khata">✏️</button>` : ''}
-              ${!k.isDefault ? `<button type="button" onclick="deleteKhataBook('${escapeHtml(k.id)}')" class="text-rose-500 hover:text-rose-700 p-1 text-xs" title="Delete Khata">🗑️</button>` : ''}
-              ${!isActive ? `<button type="button" onclick="switchActiveKhata('${escapeHtml(k.id)}')" class="px-2.5 py-1 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10px] shadow-2xs">Open</button>` : ''}
+
+            <div style="display: flex; align-items: center; gap: 0.5rem;" onclick="event.stopPropagation()">
+              ${isKhataEditModeActive ? `
+                ${!k.isDefault ? `<button type="button" onclick="renameKhataBook('${escapeHtml(k.id)}')" style="padding: 0.25rem 0.5rem; border-radius: 0.5rem; border: 1px solid #cbd5e1; background: #fff; font-size: 0.75rem; cursor: pointer;" title="Rename">✏️</button>` : ''}
+                ${!k.isDefault ? `<button type="button" onclick="deleteKhataBook('${escapeHtml(k.id)}')" style="padding: 0.25rem 0.5rem; border-radius: 0.5rem; border: 1px solid #fecdd3; background: #fff1f2; color: #e11d48; font-size: 0.75rem; cursor: pointer;" title="Delete">🗑️</button>` : ''}
+              ` : `
+                ${radioIcon}
+              `}
             </div>
           </div>
         `;
@@ -9654,7 +10756,7 @@ function applyCustomOrderCycle() {
       const activeObj = userKhatas.find(k => k.id === activeKhataId) || userKhatas[0];
       const headerLabel = document.getElementById("headerUserLabel");
       if (headerLabel) {
-        headerLabel.textContent = activeObj ? activeObj.name : "My Khatas";
+        headerLabel.textContent = activeObj ? activeObj.name : "My Businesses";
       }
       const drawerSub = document.getElementById("drawerKhataSub");
       if (drawerSub) {
@@ -9689,7 +10791,9 @@ function applyCustomOrderCycle() {
 
       // 2. Collision-safe unique ID (timestamp + random hex)
       const newId = "khata_" + Date.now().toString(36) + "_" + Math.random().toString(36).substring(2, 8);
-      userKhatas.push({ id: newId, name: rawName, isDefault: false, createdAt: new Date().toISOString() });
+      const currSelect = document.getElementById("newKhataCurrencySelect");
+      const selectedCurrency = currSelect ? currSelect.value : "AED";
+      userKhatas.push({ id: newId, name: rawName, currency: selectedCurrency, isDefault: false, createdAt: new Date().toISOString() });
 
       // 3. Switch active ID to new Khata
       activeKhataId = newId;
@@ -9705,17 +10809,24 @@ function applyCustomOrderCycle() {
 
       renderKhataList();
       renderAll();
-      showToast(`🎉 New Khata "${rawName}" created and opened!`);
+      showToast(`🎉 New Business "${rawName}" (${selectedCurrency}) created!`);
+      toggleKhataAddBox(false);
       closeKhataManagerModal();
 
-      // 6. Sync updated multi-Khata bundle to cloud
-      pushToCloud();
+      // 6. Sync updated multi-Khata bundle to cloud in background
+      setTimeout(() => {
+        pushToCloud().catch(err => console.warn("Background push on create:", err));
+      }, 100);
     }
 
     function switchActiveKhata(khataId) {
-      if (khataId === activeKhataId) return;
+      if (!khataId) return;
+      if (khataId === activeKhataId) {
+        closeKhataManagerModal();
+        return;
+      }
 
-      // 1. Save current active Khata to storage first
+      // 1. Save current active Khata to its isolated storage key locally
       saveToStorage(false, false);
 
       // 2. Switch active ID
@@ -9728,11 +10839,15 @@ function applyCustomOrderCycle() {
       renderAll();
 
       const khataObj = userKhatas.find(k => k.id === khataId);
-      showToast(`📖 Switched to: ${khataObj ? khataObj.name : 'Khata'}`);
+      const kName = khataObj ? khataObj.name : 'Khata';
+      const kCurr = khataObj ? (khataObj.currency || 'AED') : 'AED';
+      showToast(`📖 Switched to: ${kName} (${kCurr})`);
       closeKhataManagerModal();
 
-      // 4. Update cloud active pointer
-      pushToCloud();
+      // 4. Update cloud active pointer in background with 0ms delay to UI
+      setTimeout(() => {
+        pushToCloud().catch(err => console.warn("Background push on switch:", err));
+      }, 100);
     }
 
     function renameKhataBook(khataId) {
@@ -9754,6 +10869,10 @@ function applyCustomOrderCycle() {
         return;
       }
       khataObj.name = cleanName;
+      const newCurr = prompt(`Enter currency code for "${cleanName}" (e.g. PKR, AED, INR, USD, SAR):`, khataObj.currency || "PKR");
+      if (newCurr && newCurr.trim()) {
+        khataObj.currency = newCurr.trim().toUpperCase();
+      }
       saveUserKhatasMeta();
       renderKhataList();
       renderAll();
@@ -9819,10 +10938,7 @@ function applyCustomOrderCycle() {
           try { parsed = JSON.parse(raw); } catch(e) {}
         }
 
-// Test master data seeding removed: clean user ledger
-
         if (parsed && typeof parsed === 'object') {
-
           appState.deletedTxIds = Array.isArray(parsed.deletedTxIds) ? parsed.deletedTxIds : [];
           appState.deletedOrderIds = Array.isArray(parsed.deletedOrderIds) ? parsed.deletedOrderIds : [];
           appState.deletedRentIds = Array.isArray(parsed.deletedRentIds) ? parsed.deletedRentIds : [];
@@ -9832,11 +10948,45 @@ function applyCustomOrderCycle() {
           const delRentSet = new Set(appState.deletedRentIds);
 
           appState.transactions = sanitizeAllAccountNames(Array.isArray(parsed.transactions) ? parsed.transactions : []).filter(t => !delTxSet.has(t.id));
+          
+          let modifiedStorage = false;
+          if (isPrimary) {
+            // Seed official Company Loan & Room Rent CreditBook report entries strictly into Primary Khata
+            const existingTxMap = new Map(appState.transactions.map(t => [String(t.id), t]));
+            COMPANY_LOAN_REPORT_ENTRIES.forEach(entry => {
+              if (!delTxSet.has(entry.id) && !existingTxMap.has(entry.id)) {
+                appState.transactions.push(JSON.parse(JSON.stringify(entry)));
+                existingTxMap.set(entry.id, entry);
+                modifiedStorage = true;
+              }
+            });
+            ROOM_RENT_REPORT_ENTRIES.forEach(entry => {
+              if (!delTxSet.has(entry.id) && !existingTxMap.has(entry.id)) {
+                appState.transactions.push(JSON.parse(JSON.stringify(entry)));
+                existingTxMap.set(entry.id, entry);
+                modifiedStorage = true;
+              }
+            });
+          } else {
+            // Strict isolation: secondary Khata must NEVER contain primary report entries!
+            // Purge any leaked Company Loan or Room Rent entries that were previously injected
+            const leakedIds = new Set([
+              ...COMPANY_LOAN_REPORT_ENTRIES.map(e => String(e.id)),
+              ...ROOM_RENT_REPORT_ENTRIES.map(e => String(e.id))
+            ]);
+            const prevLen = appState.transactions.length;
+            appState.transactions = appState.transactions.filter(t => !leakedIds.has(String(t.id)));
+            if (appState.transactions.length !== prevLen) {
+              modifiedStorage = true;
+            }
+          }
+
           appState.orders = (Array.isArray(parsed.orders) ? parsed.orders : []).filter(o => !delOrdSet.has(o.id));
           appState.roomRentRecords = (Array.isArray(parsed.roomRentRecords) ? parsed.roomRentRecords : []).filter(r => !delRentSet.has(r.id));
           appState.fixed_rate = Number.isFinite(parseFloat(parsed.fixed_rate)) ? parseFloat(parsed.fixed_rate) : 7.80;
           appState.monthlyRates = parsed.monthlyRates && typeof parsed.monthlyRates === 'object' ? parsed.monthlyRates : {};
-          appState.agreedMonthlyRent = Math.max(0, parseFloat(parsed.agreedMonthlyRent) || 0);
+          appState.agreedMonthlyRent = Math.max(0, parseFloat(parsed.agreedMonthlyRent) || 500);
+          appState.openingBalance = Number.isFinite(parseFloat(parsed.openingBalance)) ? parseFloat(parsed.openingBalance) : 0;
           if (parsed.customOrderStart) appState.customOrderStart = parsed.customOrderStart;
           if (parsed.customOrderEnd) appState.customOrderEnd = parsed.customOrderEnd;
           if (parsed.activeOrderCycle) appState.activeOrderCycle = parsed.activeOrderCycle;
@@ -9845,6 +10995,10 @@ function applyCustomOrderCycle() {
           appState.savedAt = parsed.savedAt || "";
           const khataObj = userKhatas.find(k => k.id === activeKhataId);
           appState.riderName = khataObj ? khataObj.name : (currentUser?.user_metadata?.name || (isAli ? "Ali Raza" : "Rider"));
+          
+          if (modifiedStorage) {
+            try { safeSetItem(key, JSON.stringify(appState)); } catch(e) {}
+          }
           recomputePersonSummary();
           return;
         }
@@ -9852,9 +11006,18 @@ function applyCustomOrderCycle() {
         console.warn("Load khata error:", e);
       }
 
-      // Default blank fallback
+      // Default fallback: Only Primary Khata gets official Company Loan and Room Rent
       const khataObj = userKhatas.find(k => k.id === activeKhataId);
       resetToBlankKhatabook(khataObj ? khataObj.name : "Rider", currentUser?.email || "");
+      if (isPrimary) {
+        appState.transactions = JSON.parse(JSON.stringify([...COMPANY_LOAN_REPORT_ENTRIES, ...ROOM_RENT_REPORT_ENTRIES]));
+        appState.agreedMonthlyRent = 500;
+      } else {
+        appState.transactions = [];
+        appState.agreedMonthlyRent = 0;
+      }
+      try { safeSetItem(key, JSON.stringify(appState)); } catch(e) {}
+      recomputePersonSummary();
     }
 
     (async function initSessionPersistence() {
@@ -9892,16 +11055,16 @@ function applyCustomOrderCycle() {
               }));
               SYNC_ID = isSuperAdmin() ? "ali_raza_data" : session.user.id;
               applyAuthState(session.user);
-              await pullFromCloud();
+              pullFromCloud(true);
               
             } else {
               // If Super Admin Ali Raza is logged in, NEVER lock or force logout!
               if (currentUser && isSuperAdmin()) {
                 SYNC_ID = "ali_raza_data";
-                await pullFromCloud();
+                pullFromCloud(true);
               } else if (currentUser && !currentUser.isGuest) {
                 // For other riders, sync cloud state
-                await pullFromCloud();
+                pullFromCloud(true);
               }
             }
           } else {
@@ -10061,6 +11224,101 @@ function applyCustomOrderCycle() {
     } else {
       try { initApp(); } catch(e) { console.error("InitApp error:", e); }
     }
+
+    // =========================================================================
+    // MOBILE PULL-TO-REFRESH CLOUD SYNC CONTROLLER (STANDALONE PWA READY)
+    // =========================================================================
+    (function initPullToRefresh() {
+      let touchStartY = 0;
+      let touchCurrentY = 0;
+      let isPulling = false;
+      let isRefreshing = false;
+
+      const indicator = document.getElementById("pullToRefreshIndicator");
+      const icon = document.getElementById("pullRefreshIcon");
+      const text = document.getElementById("pullRefreshText");
+
+      if (!indicator) return;
+
+      window.addEventListener("touchstart", (e) => {
+        if (window.scrollY <= 2 && e.touches.length === 1 && !isRefreshing) {
+          touchStartY = e.touches[0].clientY;
+          isPulling = true;
+        }
+      }, { passive: true });
+
+      window.addEventListener("touchmove", (e) => {
+        if (!isPulling || isRefreshing) return;
+        touchCurrentY = e.touches[0].clientY;
+        const diff = touchCurrentY - touchStartY;
+
+        if (diff > 10 && window.scrollY <= 2) {
+          const pullDist = Math.min(diff * 0.45, 80);
+          indicator.style.transform = `translateY(${pullDist - 55}px)`;
+          indicator.style.opacity = "1";
+
+          if (pullDist >= 60) {
+            if (text) text.textContent = "Release to refresh!";
+            if (icon) {
+              icon.style.transform = "rotate(180deg)";
+              icon.textContent = "🔄";
+            }
+          } else {
+            if (text) text.textContent = "Pull down to sync...";
+            if (icon) {
+              icon.style.transform = `rotate(${pullDist * 3}deg)`;
+              icon.textContent = "⬇️";
+            }
+          }
+        }
+      }, { passive: true });
+
+      window.addEventListener("touchend", async () => {
+        if (!isPulling || isRefreshing) return;
+        isPulling = false;
+        const diff = touchCurrentY - touchStartY;
+        const pullDist = diff * 0.45;
+
+        if (pullDist >= 60 && window.scrollY <= 5) {
+          isRefreshing = true;
+          indicator.style.transform = "translateY(15px)";
+          if (text) text.textContent = "Syncing with cloud...";
+          if (icon) {
+            icon.classList.add("animate-spin");
+            icon.textContent = "⏳";
+          }
+
+          try {
+            showToast("🔄 Cloud se latest data refresh ho raha hai...");
+            await pullFromCloud(true);
+            renderAll();
+            showToast("✅ All Khatas Synced!");
+          } catch (err) {
+            console.warn("Pull refresh catch:", err);
+          } finally {
+            setTimeout(() => {
+              indicator.style.transform = "translateY(-100%)";
+              indicator.style.opacity = "0";
+              if (icon) {
+                icon.classList.remove("animate-spin");
+                icon.style.transform = "rotate(0deg)";
+                icon.textContent = "⬇️";
+              }
+              if (text) text.textContent = "Pull down to sync...";
+              isRefreshing = false;
+              touchStartY = 0;
+              touchCurrentY = 0;
+            }, 600);
+          }
+        } else {
+          indicator.style.transform = "translateY(-100%)";
+          indicator.style.opacity = "0";
+          touchStartY = 0;
+          touchCurrentY = 0;
+        }
+      }, { passive: true });
+    })();
+
   </script>
 
   <!-- Container for native mobile print & PDF export -->
