@@ -420,9 +420,7 @@
 
     /* Toast Notification */
     #toastNotification {
-      background: #1c130e;
-      border: 1px solid #b45309;
-      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     /* Modals Backdrop & Window */
@@ -2211,21 +2209,21 @@
           <div class="card-cream p-2.5">
             <div class="text-[9px] text-slate-500 uppercase font-bold">Total Inflow</div>
             <div class="mt-1 font-luxury font-black text-base text-emerald-800">
-              <span id="sheetStmtIn">14300.00</span> <span class="app-currency-label text-[9px] text-slate-400 font-normal">AED</span>
+              <span id="sheetStmtIn">20476.00</span> <span class="app-currency-label text-[9px] text-slate-400 font-normal">AED</span>
             </div>
           </div>
 
           <div class="card-cream p-2.5">
             <div class="text-[9px] text-slate-500 uppercase font-bold">Total Outflow</div>
             <div class="mt-1 font-luxury font-black text-base text-rose-800">
-              <span id="sheetStmtOut">3840.00</span> <span class="app-currency-label text-[9px] text-slate-400 font-normal">AED</span>
+              <span id="sheetStmtOut">9817.00</span> <span class="app-currency-label text-[9px] text-slate-400 font-normal">AED</span>
             </div>
           </div>
 
           <div class="card-cream p-2.5">
             <div class="text-[9px] text-slate-500 uppercase font-bold">Net Difference</div>
             <div class="mt-1 font-luxury font-black text-base text-slate-900">
-              <span id="sheetStmtNet">10460.00</span> <span class="app-currency-label text-[9px] text-slate-400 font-normal">AED</span>
+              <span id="sheetStmtNet">10659.00</span> <span class="app-currency-label text-[9px] text-slate-400 font-normal">AED</span>
             </div>
           </div>
         </div>
@@ -2247,7 +2245,8 @@
               <div class="flex items-center space-x-1 bg-white border border-[#ebdccb] rounded-xl px-2 py-1.5 shadow-2xs">
                 <label for="statementCategoryFilter" class="text-[10px] font-bold text-slate-500 uppercase">Category:</label>
                 <select id="statementCategoryFilter" onchange="renderStatementTable()" class="text-xs font-bold bg-transparent text-slate-800 outline-none w-full cursor-pointer">
-                  <option value="ALL">All Categories</option>
+                  <option value="ALL">All Categories (Real Cash Totals)</option>
+                  <option value="REAL_ONLY">🟢 Real Cash Entries Only</option>
                   <option value="Salary">💼 Salary</option>
                   <option value="Orders">🛵 Orders</option>
                   <option value="Incentive">🎯 Incentive</option>
@@ -2517,6 +2516,18 @@
       </button>
 
       <div class="pt-3 border-t border-amber-900/40 my-2 space-y-2">
+        <!-- Direct 1-Tap Mobile Storage Backup -->
+        <button type="button" onclick="openModal('modalBackup'); toggleDrawer(false);" class="w-full text-left px-3.5 py-2.5 rounded-xl bg-emerald-900/30 hover:bg-emerald-900/50 text-emerald-200 font-bold text-xs flex items-center justify-between transition border border-emerald-500/40 shadow-xs active:scale-95">
+          <div class="flex items-center space-x-2.5">
+            <span class="text-base">📦</span>
+            <div>
+              <div class="font-bold">Backup Data to Mobile</div>
+              <div class="text-[9px] text-emerald-400 font-normal">Phone storage me backup save karein</div>
+            </div>
+          </div>
+          <span class="text-emerald-400 font-bold text-sm">💾</span>
+        </button>
+
         <!-- Settings & App Tools -->
         <button type="button" onclick="openModal('modalSettingsTools'); toggleDrawer(false);" class="w-full text-left px-3.5 py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-200 font-bold text-xs flex items-center justify-between transition border border-amber-500/30 shadow-xs active:scale-95">
           <div class="flex items-center space-x-2.5">
@@ -2544,10 +2555,10 @@
     </div>
   </aside>
 
-  <!-- ================= TOAST NOTIFICATION ================= -->
-  <div id="toastNotification" class="fixed top-4 right-4 z-50 transform transition-all duration-300 translate-y-[-150%] opacity-0 pointer-events-none">
-    <span id="toastIcon">✅</span>
-    <span id="toastMsg">💾 Data saved successfully! (11 entries saved)</span>
+  <!-- ================= ULTRA-PROMINENT HEADS-UP TOAST NOTIFICATION ================= -->
+  <div id="toastNotification" onclick="hideToastImmediately()" style="position: fixed; top: 1.25rem; left: 50%; transform: translate(-50%, -160%); z-index: 999999 !important; transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease; opacity: 0; pointer-events: none; max-width: 92vw; min-width: 16rem; width: max-content; background: #0f172a; border-radius: 9999px; box-shadow: 0 16px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.1); padding: 0.75rem 1.25rem; display: flex; align-items: center; justify-content: center; gap: 0.65rem; color: #ffffff; cursor: pointer;">
+    <span id="toastIcon" style="font-size: 1.15rem; flex-shrink: 0; line-height: 1;">✅</span>
+    <span id="toastMsg" style="font-size: 0.825rem; font-weight: 700; color: #f8fafc; line-height: 1.25; text-align: left;"></span>
   </div>
 
   <!-- ALL MODALS PRESERVED WITH 100% WORKING FUNCTIONALITY -->
@@ -6234,17 +6245,79 @@ create policy "Allow public all" on public."RiderKhatabook"
       }
     }
 
-    function showToast(msg, isSuccess = true) {
+    var toastTimeout = null;
+
+    function hideToastImmediately() {
+      const el = document.getElementById("toastNotification");
+      if (!el) return;
+      if (toastTimeout) {
+        clearTimeout(toastTimeout);
+        toastTimeout = null;
+      }
+      el.style.transform = "translate(-50%, -160%)";
+      el.style.opacity = "0";
+      el.style.pointerEvents = "none";
+    }
+
+    function showToast(msg, type = true) {
       const el = document.getElementById("toastNotification");
       const msgEl = document.getElementById("toastMsg");
       const iconEl = document.getElementById("toastIcon");
-      if (!el) return;
-      msgEl.textContent = msg;
-      iconEl.textContent = isSuccess ? "✅" : "⚠️";
-      el.className = `fixed top-4 right-4 z-50 pointer-events-none transform transition-all duration-300 translate-y-0 opacity-100 flex items-center space-x-2 px-3.5 py-2.5 rounded-xl shadow-2xl text-white text-xs font-semibold ${isSuccess ? 'bg-emerald-600' : 'bg-rose-600'}`;
-      setTimeout(() => {
-        el.className = "fixed top-4 right-4 z-50 transform transition-all duration-300 translate-y-[-150%] opacity-0 pointer-events-none";
-      }, 2400);
+      if (!el || !msg) return;
+
+      if (toastTimeout) {
+        clearTimeout(toastTimeout);
+        toastTimeout = null;
+      }
+
+      const isErr = (type === false || type === "error" || type === "danger");
+      const isWarn = (type === "warning" || type === "warn");
+      
+      let icon = "✅";
+      let borderColor = "#10b981";
+      let shadowGlow = "0 16px 40px rgba(0,0,0,0.55), 0 0 15px rgba(16,185,129,0.4)";
+      let textColor = "#f0fdf4";
+
+      if (isErr) {
+        icon = "⚠️";
+        borderColor = "#f43f5e";
+        shadowGlow = "0 16px 40px rgba(0,0,0,0.55), 0 0 15px rgba(244,63,94,0.4)";
+        textColor = "#fff1f2";
+      } else if (isWarn) {
+        icon = "🔔";
+        borderColor = "#f59e0b";
+        shadowGlow = "0 16px 40px rgba(0,0,0,0.55), 0 0 15px rgba(245,158,11,0.4)";
+        textColor = "#fffbeb";
+      } else if (type === "info") {
+        icon = "ℹ️";
+        borderColor = "#0ea5e9";
+        shadowGlow = "0 16px 40px rgba(0,0,0,0.55), 0 0 15px rgba(14,165,233,0.4)";
+        textColor = "#f0f9ff";
+      }
+
+      // If message already starts with an emoji, extract it into icon
+      let cleanMsg = msg;
+      const emojiMatch = msg.match(/^([✅⚠️ℹ️🔔💾📥🗑️✏️🎉📖📊🏠🎨🔍🚪🔑🛵👑]\s*)+/);
+      if (emojiMatch) {
+        icon = emojiMatch[0].trim();
+        cleanMsg = msg.substring(emojiMatch[0].length).trim();
+      }
+
+      if (iconEl) iconEl.textContent = icon;
+      if (msgEl) {
+        msgEl.textContent = cleanMsg || msg;
+        msgEl.style.color = textColor;
+      }
+
+      el.style.border = `2px solid ${borderColor}`;
+      el.style.boxShadow = shadowGlow;
+      el.style.transform = "translate(-50%, 0)";
+      el.style.opacity = "1";
+      el.style.pointerEvents = "auto";
+
+      toastTimeout = setTimeout(() => {
+        hideToastImmediately();
+      }, 2600);
     }
 
     function safeAddListener(id, event, handler) {
@@ -8195,7 +8268,9 @@ function applyCustomOrderCycle() {
         txs = txs.filter(t => toIsoDate(t.date).slice(0, 7) === selMonth);
       }
       
-      if (cat !== "ALL") {
+      if (cat === "REAL_ONLY") {
+        txs = txs.filter(t => t.isReal !== false && !t.isNonReal && !t.isAutoRentCharge);
+      } else if (cat !== "ALL") {
         txs = txs.filter(t => {
           const tc = (t.category || '').toLowerCase();
           const target = cat.toLowerCase();
@@ -8222,6 +8297,9 @@ function applyCustomOrderCycle() {
       let stmtIn = 0;
       let stmtOut = 0;
       txs.forEach(t => {
+        // NON-REAL CASH MUST STRICTLY NOT BE CALCULATED IN STATEMENT TOTALS!
+        if (t.isReal === false || t.isNonReal === true || t.isAutoRentCharge) return;
+
         const cin = parseFloat(t.cash_in) || 0;
         const cout = parseFloat(t.cash_out) || 0;
         stmtIn += cin;
@@ -8652,182 +8730,205 @@ function applyCustomOrderCycle() {
       if (isSavingEntry) return;
       isSavingEntry = true;
       setTimeout(() => { isSavingEntry = false; }, 600);
-      const editId = document.getElementById("entryEditId").value;
-      const cat = document.getElementById("entryCategory").value;
-      const dateVal = document.getElementById("entryDate").value;
-      const timeVal = document.getElementById("entryTime")?.value || getDeviceLocalTime();
-      const monthVal = document.getElementById("entryMonth").value || getMonthTagFromDate(dateVal);
-      const detailVal = document.getElementById("entryDetail").value;
 
-      if (cat === "Orders" || cat === "Order") {
-        const cnt = parseInt(document.getElementById("entryOrderCount").value) || 0;
-        if (cnt <= 0) {
-          showToast("Please enter a valid order count greater than 0!", false);
-          return;
-        }
-        const rateForThisEntry = getRateForDate(dateVal);
-        const earn = cnt * rateForThisEntry;
-        const newOrd = {
-          id: editId || ("ord_" + Date.now()),
-          date: dateVal,
-          day: new Date(dateVal + "T12:00:00").toLocaleDateString("en-US", { weekday: 'long' }),
-          count: cnt,
-          rate: rateForThisEntry,
-          earnings: earn,
-          notes: detailVal
-        };
-        if (editId) {
-          const idx = appState.orders.findIndex(o => o.id === editId);
-          if (idx !== -1) appState.orders[idx] = newOrd;
-        } else {
-          appState.orders.unshift(newOrd);
-        }
-      } else if (cat === "Loan" || cat === "Loan") {
-        let pName = document.getElementById("lenDenPersonSelect").value;
-        if (pName === "NEW") {
-          pName = document.getElementById("lenDenNewPersonInput").value.trim() || "Contact";
-        }
-        pName = pName.trim();
-        const lType = document.querySelector('input[name="lenDenType"]:checked')?.value || 'DIYE';
-        const principalAmt = parseFloat(document.getElementById("entryAmount").value) || 0;
-        if (principalAmt <= 0) {
-          showToast("Please enter a valid amount greater than 0!", false);
-          return;
-        }
-        const isReal = document.getElementById("lenDenIsReal") ? document.getElementById("lenDenIsReal").checked : true;
-        const interestAmt = (lType === "DIYE") ? (parseFloat(document.getElementById("lenDenInterestAmount")?.value) || 0) : 0;
-        const totalPaid = principalAmt + interestAmt;
+      try {
+        const isPrimary = (!activeKhataId || activeKhataId === "default");
+        const editId = (document.getElementById("entryEditId")?.value || "").trim();
+        const cat = (document.getElementById("entryCategory")?.value || "Other Expenses").trim();
+        const dateVal = document.getElementById("entryDate")?.value || getDeviceLocalDate();
+        const timeVal = document.getElementById("entryTime")?.value || getDeviceLocalTime();
+        const monthVal = document.getElementById("entryMonth")?.value || getMonthTagFromDate(dateVal);
+        const detailVal = (document.getElementById("entryDetail")?.value || "").trim();
 
-        const isFh = (pName === "Company Loan");
-        let autoDetail = "";
-        if (lType === "LIYE") {
-          autoDetail = pName + " - Loan Received";
-        } else {
-          autoDetail = interestAmt > 0
-            ? (pName + " - Loan Repayment (" + principalAmt.toFixed(2) + " Principal + " + interestAmt.toFixed(2) + " Fee)")
-            : (pName + " - Loan Repayment");
-        }
-
-        const newTx = {
-          id: editId || ("tx_" + Date.now()),
-          date: dateVal,
-          time: timeVal || new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-          category: "Loan",
-          person: pName,
-          detail: detailVal || autoDetail,
-          cash_in: lType === "LIYE" ? principalAmt : 0.0,
-          cash_out: lType === "DIYE" ? totalPaid : 0.0,
-          principal_amount: principalAmt,
-          interest_amount: interestAmt,
-          isReal: isReal,
-          month: monthVal,
-          currency: getActiveCurrency(),
-          isCompanyVisaLoan: isFh,
-          isLoanDeduction: isFh && (lType === "DIYE"),
-          isLoanPrincipal: isFh && (lType === "LIYE")
-        };
-
-        if (editId) {
-          const idx = appState.transactions.findIndex(t => t.id === editId);
-          if (idx !== -1) appState.transactions[idx] = newTx;
-        } else {
-          appState.transactions.unshift(newTx);
-        }
-
-        recomputePersonSummary();
-      } else {
-        const amt = parseFloat(document.getElementById("entryAmount").value) || 0;
-        
-        let mappedCat = cat;
-        const isSalary = (cat === "Salary");
-        const isIncentive = (cat === "Incentive");
-        const isRemittance = (cat === "Remittance" || cat === "HomeSend");
-        const isRoomRent = (cat === "Room Rent" || cat === "Rent");
-
-        let countryVal = "";
-        let remitCurrVal = "";
-        let remitRateVal = 0;
-        let remitReceivedVal = 0;
-        if (isRemittance) {
-          mappedCat = "Remittance";
-          const cSelect = document.getElementById("entryRemitCountry");
-          const customCInput = document.getElementById("entryRemitCustomCountry");
-          countryVal = (cSelect?.value === "Other" && customCInput?.value.trim()) ? customCInput.value.trim() : (cSelect?.value || "Pakistan");
-          
-          remitCurrVal = (document.getElementById("entryRemitCurrency")?.value || "PKR").trim().toUpperCase();
-          remitRateVal = parseFloat(document.getElementById("entryRemitRate")?.value) || 0;
-          if (amt > 0 && remitRateVal > 0) {
-            remitReceivedVal = amt * remitRateVal;
+        if (cat === "Orders" || cat === "Order") {
+          const cnt = parseInt(document.getElementById("entryOrderCount")?.value, 10) || 0;
+          if (cnt <= 0) {
+            showToast("Please enter a valid order count greater than 0!", false);
+            return;
           }
-        }
-        if (cat === "Fuel" || cat === "Petrol") mappedCat = "Fuel";
-        if (cat === "Food") mappedCat = "Food";
-        if (cat === "Other Expenses" || cat === "Other Expense" || cat === "Mobile & Data") mappedCat = "Other Expenses";
-        if (isSalary) mappedCat = "Salary";
-        if (isIncentive) mappedCat = "Incentive";
-
-        let assignedTxId = editId || ("tx_" + Date.now());
-        if (isRoomRent) {
-          mappedCat = "Room Rent";
-          const isEditRR = String(editId).startsWith("RR_");
-          const realRRId = isEditRR ? editId.replace("RR_", "") : (editId || ("tx_rr_" + Date.now()));
-          assignedTxId = realRRId;
-          const newRREntry = {
-            id: realRRId,
+          const rateForThisEntry = getRateForDate(dateVal);
+          const earn = cnt * rateForThisEntry;
+          const newOrd = {
+            id: editId || ("ord_" + Date.now()),
             date: dateVal,
-            detail: detailVal || "Room rent payment",
-            rent_charged: 0.0,
-            paid_adjusted: amt,
-            balance: 0.0
+            day: new Date(dateVal + "T12:00:00").toLocaleDateString("en-US", { weekday: 'long' }),
+            count: cnt,
+            rate: rateForThisEntry,
+            earnings: earn,
+            notes: detailVal
           };
-          if (!appState.roomRentRecords) appState.roomRentRecords = [];
-          const rrIdx = appState.roomRentRecords.findIndex(x => x.id === realRRId);
-          if (rrIdx !== -1) {
-            appState.roomRentRecords[rrIdx] = newRREntry;
+          if (editId) {
+            const idx = appState.orders.findIndex(o => o.id === editId);
+            if (idx !== -1) appState.orders[idx] = newOrd;
+            else appState.orders.unshift(newOrd);
           } else {
-            appState.roomRentRecords.push(newRREntry);
+            appState.orders.unshift(newOrd);
+          }
+          showToast(`🛵 ${cnt} Orders (${earn.toFixed(2)} ${getActiveCurrency()}) recorded!`);
+        } else if (cat === "Loan") {
+          let pName = document.getElementById("lenDenPersonSelect")?.value || "Contact";
+          if (pName === "NEW") {
+            pName = document.getElementById("lenDenNewPersonInput")?.value.trim() || "Contact";
+          }
+          pName = pName.trim();
+          const lType = document.querySelector('input[name="lenDenType"]:checked')?.value || 'DIYE';
+          const principalAmt = parseFloat(document.getElementById("entryAmount")?.value) || 0;
+          if (principalAmt <= 0) {
+            showToast("Please enter a valid amount greater than 0!", false);
+            return;
+          }
+          const isReal = document.getElementById("lenDenIsReal") ? document.getElementById("lenDenIsReal").checked : true;
+          const interestAmt = (lType === "DIYE") ? (parseFloat(document.getElementById("lenDenInterestAmount")?.value) || 0) : 0;
+          const totalPaid = principalAmt + interestAmt;
+
+          const isFh = (pName === "Company Loan");
+          let autoDetail = "";
+          if (lType === "LIYE") {
+            autoDetail = pName + " - Loan Received";
+          } else {
+            autoDetail = interestAmt > 0
+              ? (pName + " - Loan Repayment (" + principalAmt.toFixed(2) + " Principal + " + interestAmt.toFixed(2) + " Fee)")
+              : (pName + " - Loan Repayment");
+          }
+
+          const newTx = {
+            id: editId || ("tx_" + Date.now()),
+            date: dateVal,
+            time: timeVal,
+            category: "Loan",
+            person: pName,
+            detail: detailVal || autoDetail,
+            cash_in: lType === "LIYE" ? principalAmt : 0.0,
+            cash_out: lType === "DIYE" ? totalPaid : 0.0,
+            principal_amount: principalAmt,
+            interest_amount: interestAmt,
+            isReal: isReal,
+            month: monthVal,
+            currency: getActiveCurrency(),
+            isCompanyVisaLoan: isFh,
+            isLoanDeduction: isFh && (lType === "DIYE"),
+            isLoanPrincipal: isFh && (lType === "LIYE")
+          };
+
+          if (editId) {
+            const idx = appState.transactions.findIndex(t => t.id === editId);
+            if (idx !== -1) appState.transactions[idx] = newTx;
+            else appState.transactions.unshift(newTx);
+          } else {
+            appState.transactions.unshift(newTx);
+          }
+
+          recomputePersonSummary();
+          showToast(`🤝 Loan entry (${totalPaid.toFixed(2)} ${getActiveCurrency()}) saved!`);
+        } else {
+          const amt = parseFloat(document.getElementById("entryAmount")?.value) || 0;
+          if (amt <= 0) {
+            showToast("Please enter a valid amount greater than 0!", false);
+            return;
+          }
+          
+          let mappedCat = cat;
+          const isSalary = (cat === "Salary");
+          const isIncentive = (cat === "Incentive");
+          const isRemittance = (cat === "Remittance" || cat === "HomeSend");
+          const isRoomRent = (cat === "Room Rent" || cat === "Rent");
+
+          let countryVal = "";
+          let remitCurrVal = "";
+          let remitRateVal = 0;
+          let remitReceivedVal = 0;
+          if (isRemittance) {
+            mappedCat = "Remittance";
+            const cSelect = document.getElementById("entryRemitCountry");
+            const customCInput = document.getElementById("entryRemitCustomCountry");
+            countryVal = (cSelect?.value === "Other" && customCInput?.value.trim()) ? customCInput.value.trim() : (cSelect?.value || "Pakistan");
+            
+            remitCurrVal = (document.getElementById("entryRemitCurrency")?.value || "PKR").trim().toUpperCase();
+            remitRateVal = parseFloat(document.getElementById("entryRemitRate")?.value) || 0;
+            if (amt > 0 && remitRateVal > 0) {
+              remitReceivedVal = amt * remitRateVal;
+            }
+          }
+          if (cat === "Fuel" || cat === "Petrol") mappedCat = "Fuel";
+          if (cat === "Food") mappedCat = "Food";
+          if (cat === "Other Expenses" || cat === "Other Expense" || cat === "Mobile & Data") mappedCat = "Other Expenses";
+          if (isSalary) mappedCat = "Salary";
+          if (isIncentive) mappedCat = "Incentive";
+
+          let assignedTxId = editId || ("tx_" + Date.now());
+          if (isRoomRent) {
+            mappedCat = "Room Rent";
+            const isEditRR = String(editId).startsWith("RR_");
+            const realRRId = isEditRR ? editId.replace("RR_", "") : (editId || ("tx_rr_" + Date.now()));
+            assignedTxId = realRRId;
+            const newRREntry = {
+              id: realRRId,
+              date: dateVal,
+              detail: detailVal || "Room rent payment",
+              rent_charged: 0.0,
+              paid_adjusted: amt,
+              balance: 0.0
+            };
+            if (!appState.roomRentRecords) appState.roomRentRecords = [];
+            const rrIdx = appState.roomRentRecords.findIndex(x => x.id === realRRId);
+            if (rrIdx !== -1) {
+              appState.roomRentRecords[rrIdx] = newRREntry;
+            } else {
+              appState.roomRentRecords.push(newRREntry);
+            }
+          }
+
+          const isIncome = (isSalary || isIncentive);
+          const newTx = {
+            id: assignedTxId,
+            date: dateVal,
+            time: timeVal,
+            category: mappedCat,
+            detail: detailVal || (isSalary ? "Salary" : isIncentive ? "Incentive" : isRemittance ? `Remittance (${countryVal})` : mappedCat),
+            cash_in: isIncome ? amt : 0.0,
+            cash_out: isIncome ? 0.0 : amt,
+            month: monthVal,
+            isReal: true, // Always true for actual money spent/received
+            isSalary: isSalary,
+            isIncentive: isIncentive,
+            isRoomRent: isRoomRent,
+            person: isRoomRent ? "Room Rent" : undefined,
+            country: isRemittance ? countryVal : undefined,
+            currency: isRemittance ? remitCurrVal : getActiveCurrency(),
+            target_currency: isRemittance ? remitCurrVal : undefined,
+            exchange_rate: isRemittance && remitRateVal > 0 ? remitRateVal : undefined,
+            received_amount: isRemittance && remitReceivedVal > 0 ? remitReceivedVal : undefined
+          };
+
+          if (editId) {
+            const idx = appState.transactions.findIndex(t => t.id === editId);
+            if (idx !== -1) appState.transactions[idx] = newTx;
+            else appState.transactions.unshift(newTx);
+          } else {
+            appState.transactions.unshift(newTx);
+          }
+
+          if (isRemittance) {
+            showToast(`🌍 Remittance of ${amt.toFixed(2)} ${getActiveCurrency()} added!`);
+          } else {
+            showToast(`💾 ${mappedCat} of ${amt.toFixed(2)} ${getActiveCurrency()} saved!`);
           }
         }
 
-        const isIncome = (isSalary || isIncentive);
-        const newTx = {
-          id: assignedTxId,
-          date: dateVal,
-          time: timeVal,
-          category: mappedCat,
-          detail: detailVal || (isSalary ? "Salary" : isIncentive ? "Incentive" : isRemittance ? `Remittance (${countryVal})` : mappedCat),
-          cash_in: isIncome ? amt : 0.0,
-          cash_out: isIncome ? 0.0 : amt,
-          month: monthVal,
-          isSalary: isSalary,
-          isIncentive: isIncentive,
-          isRoomRent: isRoomRent,
-          person: isRoomRent ? "Room Rent" : undefined,
-          country: isRemittance ? countryVal : undefined,
-          currency: isRemittance ? remitCurrVal : (isRoomRent ? (isPrimary ? "AED" : getActiveCurrency()) : getActiveCurrency()),
-          target_currency: isRemittance ? remitCurrVal : undefined,
-          exchange_rate: isRemittance && remitRateVal > 0 ? remitRateVal : undefined,
-          received_amount: isRemittance && remitReceivedVal > 0 ? remitReceivedVal : undefined
-        };
-
-        if (editId) {
-          const idx = appState.transactions.findIndex(t => t.id === editId);
-          if (idx !== -1) appState.transactions[idx] = newTx;
+        saveToStorage(false);
+        if (typeof ModalManager !== 'undefined') {
+          ModalManager.forceClose("modalAddEdit");
         } else {
-          appState.transactions.unshift(newTx);
+          closeModal("modalAddEdit");
         }
+        renderAll();
+      } catch (err) {
+        console.error("handleSaveEntry exception:", err);
+        showToast("Error saving: " + err.message, false);
       }
-
-      saveToStorage(true);
-      if (typeof ModalManager !== 'undefined') {
-        ModalManager.forceClose("modalAddEdit");
-      } else {
-        closeModal("modalAddEdit");
-      }
-      renderAll();
     }
 
-    function editTransaction(id) {
+        function editTransaction(id) {
       let t = (appState.transactions || []).find(x => x.id === id);
       if (!t && appState.roomRentRecords) {
         const r = appState.roomRentRecords.find(x => x.id === id);
@@ -10360,18 +10461,29 @@ function applyCustomOrderCycle() {
         totalRepaidCo += repaid;
         totalDebtCo += debt;
 
-        let cinTot = 0;
-        let coutTot = 0;
-        (rData.transactions || []).forEach(t => {
-          if (t.isAutoRentCharge) return;
-          const cin = parseFloat(t.cash_in) || 0;
-          const cout = parseFloat(t.cash_out) || 0;
-          const p = (t.person || "").toLowerCase();
-          if ((t.isCompanyLoan || p.includes("company")) && cin >= 1000) return;
-          cinTot += cin;
-          coutTot += cout;
-        });
-        const netCash = cinTot - coutTot;
+        let netCash = 0;
+        if (isSuper && typeof AccountingEngine !== 'undefined') {
+          netCash = AccountingEngine.getCashSummary('ALL').closingCash;
+        } else {
+          const baseOpening = Number.isFinite(parseFloat(rData.openingBalance)) ? parseFloat(rData.openingBalance) : 0;
+          let realCin = 0;
+          let realCout = 0;
+          (rData.transactions || []).forEach(t => {
+            if (t.isAutoRentCharge) return;
+            // Non-real CreditBook report records must strictly NOT deplete live cash
+            if (t.isReal === false || t.isNonReal === true) return;
+            const cin = parseFloat(t.cash_in) || 0;
+            const cout = parseFloat(t.cash_out) || 0;
+            const p = (t.person || "").toLowerCase();
+            const isCo = t.isCompanyLoan || t.isCompanyVisaLoan || p.includes("company") || p.includes("visa");
+            const isRoomRent = t.isRoomRent || p.includes("room rent") || p.includes("rent");
+            if (isCo && cin >= 1000 && (typeof t.isReal === 'undefined')) return;
+            if (isRoomRent && cin > 0) return;
+            realCin += cin;
+            realCout += cout;
+          });
+          netCash = baseOpening + (realCin - realCout);
+        }
 
         html += `
           <tr class="hover:bg-slate-50 transition">
@@ -10531,17 +10643,28 @@ function applyCustomOrderCycle() {
       if (debtEl) debtEl.textContent = `${debt.toFixed(2)} ${getActiveCurrency()}`;
       if (repaidEl) repaidEl.textContent = `${repaid.toFixed(2)} ${getActiveCurrency()}`;
 
-      let cinTot = 0, coutTot = 0;
-      (rData.transactions || []).forEach(t => {
-        if (t.isAutoRentCharge) return;
-        const cin = parseFloat(t.cash_in) || 0;
-        const cout = parseFloat(t.cash_out) || 0;
-        const p = (t.person || "").toLowerCase();
-        if ((t.isCompanyLoan || p.includes("company")) && cin >= 1000) return;
-        cinTot += cin;
-        coutTot += cout;
-      });
-      const netCash = cinTot - coutTot;
+      let netCash = 0;
+      if (isSuper && typeof AccountingEngine !== 'undefined') {
+        netCash = AccountingEngine.getCashSummary('ALL').closingCash;
+      } else {
+        const baseOpening = Number.isFinite(parseFloat(rData.openingBalance)) ? parseFloat(rData.openingBalance) : 0;
+        let realCin = 0;
+        let realCout = 0;
+        (rData.transactions || []).forEach(t => {
+          if (t.isAutoRentCharge) return;
+          if (t.isReal === false || t.isNonReal === true) return;
+          const cin = parseFloat(t.cash_in) || 0;
+          const cout = parseFloat(t.cash_out) || 0;
+          const p = (t.person || "").toLowerCase();
+          const isCo = t.isCompanyLoan || t.isCompanyVisaLoan || p.includes("company") || p.includes("visa");
+          const isRoomRent = t.isRoomRent || p.includes("room rent") || p.includes("rent");
+          if (isCo && cin >= 1000 && (typeof t.isReal === 'undefined')) return;
+          if (isRoomRent && cin > 0) return;
+          realCin += cin;
+          realCout += cout;
+        });
+        netCash = baseOpening + (realCin - realCout);
+      }
       if (cashEl) {
         cashEl.textContent = `${netCash.toFixed(2)} ${getActiveCurrency()}`;
         cashEl.className = netCash >= 0 ? "font-mono text-emerald-700" : "font-mono text-rose-600";
