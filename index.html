@@ -444,6 +444,11 @@
       max-width: 100% !important;
       border-collapse: collapse !important;
     }
+    .table-fit-screen th:first-child, .table-fit-screen td:first-child {
+      width: 18% !important;
+      white-space: nowrap !important;
+      font-variant-numeric: tabular-nums !important;
+    }
     @media (max-width: 640px) {
       .table-fit-screen th, .table-fit-screen td {
         padding-left: 4px !important;
@@ -1372,7 +1377,7 @@
               <div class="mt-1 font-luxury font-black text-sm text-slate-900">
                 <span id="dashMonthlyRentCharge">500.00</span> <span class="app-currency-label text-[9px] text-slate-400 font-normal">AED</span>
               </div>
-              <div class="text-[8px] text-teal-700 mt-0.5 truncate" id="dashRentChargeSub">Auto liability (+)</div>
+              <div class="text-[8px] text-teal-700 mt-0.5 truncate" id="dashRentChargeSub">Monthly rent charge</div>
             </div>
 
             <!-- 2. Rent Paid This Month -->
@@ -3584,7 +3589,7 @@ create policy "Allow public all" on public."RiderKhatabook"
 
       <div class="p-5 space-y-4 text-xs">
         <p class="text-slate-600 leading-relaxed text-xs">
-          Apna registered <b>Email Address</b> likhein. Hum aap ki email par password reset karne ka secure link send karein ge.
+          Enter your registered <b>Email Address</b>. We will send a secure password reset link to your email.
         </p>
 
         <form id="forgotPasswordForm" onsubmit="handleSendPasswordReset(event)" class="space-y-3.5">
@@ -3626,7 +3631,7 @@ create policy "Allow public all" on public."RiderKhatabook"
 
       <div class="p-5 space-y-4 text-xs">
         <p class="text-slate-600 leading-relaxed text-xs">
-          Apna naya password choose karein (kam az kam 6 characters).
+          Choose your new password (minimum 6 characters).
         </p>
 
         <form id="updatePasswordForm" onsubmit="handleUpdateNewPassword(event)" class="space-y-3.5">
@@ -4133,7 +4138,7 @@ create policy "Allow public all" on public."RiderKhatabook"
     let SUPABASE_URL = safeGetItem("sb_custom_url") || "https://lfflntzzuoruqikprifu.supabase.co";
     let SUPABASE_KEY = safeGetItem("sb_custom_key") || "sb_publishable_Wi9WgEjQu0QjHsWCfwkvaw_QPjUU4FC";
     let SUPABASE_TABLE = safeGetItem("sb_custom_table") || "RiderKhatabook";
-    let SYNC_ID = safeGetItem("sb_custom_id") || "ali_raza_data";
+    let SYNC_ID = null;
     let lastSyncError = null;
 
     function initSupabaseClient() {
@@ -4259,12 +4264,12 @@ create policy "Allow public all" on public."RiderKhatabook"
       if (currentUser && currentUser.email && !currentUser.isGuest) {
         return "rider_" + String(currentUser.email).toLowerCase().trim().replace(/[^a-zA-Z0-9]/g, "_");
       }
-      return safeGetItem("sb_custom_id") || "ali_raza_data";
+      return null;
     }
 
     async function pullFromCloud(force = false) {
-      if (currentUser && currentUser.isGuest) {
-        updateSyncBadge("Guest Mode (Local)", false);
+      if (!currentUser || currentUser.isGuest) {
+        updateSyncBadge(currentUser?.isGuest ? "Guest Mode (Local)" : "Offline", false);
         return false;
       }
 
@@ -4371,15 +4376,39 @@ create policy "Allow public all" on public."RiderKhatabook"
                         }
                       });
                     } else {
-                      // Strict isolation: rider accounts or secondary Khatas must NEVER contain Ali's report entries!
+                      // Strict isolation: rider accounts or secondary Khatas must NEVER contain Ali's report entries or leaked data!
                       const leakedIds = new Set([
+                        "tx_1793780252738", "tx_1793780201900", "tx_rr_1793780179413",
+                        "tx_1793780164785", "tx_1793780116890", "tx_1793780092158",
+                        "tx_1793780065977", "tx_1793780039823", "tx_1793780023058",
+                        "tx_1793780005483", "tx_1793779990220", "tx_1793779980088",
+                        "tx_1793779961961", "tx_1793779950124", "tx_1793779927418",
+                        "tx_1793763892127", "rr_auto_charge_2026-11-16",
                         ...COMPANY_LOAN_REPORT_ENTRIES.map(e => String(e.id)),
                         ...ROOM_RENT_REPORT_ENTRIES.map(e => String(e.id))
                       ]);
-                      const origLen = remoteBook.transactions.length;
-                      remoteBook.transactions = remoteBook.transactions.filter(t => !leakedIds.has(String(t.id)));
-                      if (remoteBook.transactions.length !== origLen) {
+                      const origLen = Array.isArray(remoteBook.transactions) ? remoteBook.transactions.length : 0;
+                      if (Array.isArray(remoteBook.transactions)) {
+                        remoteBook.transactions = remoteBook.transactions.filter(t => 
+                          !leakedIds.has(String(t.id)) &&
+                          !t.isCompanyLoan &&
+                          !t.isCompanyVisaLoan &&
+                          !t.isAutoRentCharge &&
+                          !/Food with paroya|Samosa tea|Enoc|Milk and bnana|Gril khai|Tamara instalment|Fountain Head|Company Loan|Room Rent/i.test(t.description || t.note || t.person || t.accountName || "")
+                        );
+                      } else {
+                        remoteBook.transactions = [];
+                      }
+                      if ((remoteBook.transactions.length !== origLen) || (remoteBook.userEmail && isSuperAdminEmail(remoteBook.userEmail))) {
                         missingCloudEntries = true;
+                        if (remoteBook.transactions.length === 0) {
+                          remoteBook.orders = [];
+                          remoteBook.roomRentRecords = [];
+                          remoteBook.persons = {};
+                          remoteBook.agreedMonthlyRent = 0;
+                        }
+                        remoteBook.userEmail = currentUser?.email || "";
+                        remoteBook.riderName = currentUser?.user_metadata?.name || "Rider";
                       }
                     }
                   }
@@ -4407,12 +4436,9 @@ create policy "Allow public all" on public."RiderKhatabook"
           updateSyncBadge("All Khatas Synced", true);
           return true;
         } else {
-          // If remote cloud row does not exist yet for this rider, automatically save initial khata
-          if ((appState.transactions || []).length > 0 || (appState.orders || []).length > 0) {
-            await pushToCloud();
-          } else {
-            updateSyncBadge("All Khatas Synced", true);
-          }
+          // If remote cloud row does not exist yet for this rider, automatically save initial clean khata
+          await pushToCloud();
+          updateSyncBadge("All Khatas Synced", true);
           return true;
         }
       } catch (err) {
@@ -4428,8 +4454,8 @@ create policy "Allow public all" on public."RiderKhatabook"
     }
 
     async function pushToCloud() {
-      if (currentUser && currentUser.isGuest) {
-        updateSyncBadge("Guest Mode (Local)", false);
+      if (!currentUser || currentUser.isGuest) {
+        updateSyncBadge(currentUser?.isGuest ? "Guest Mode (Local)" : "Offline", false);
         return false;
       }
 
@@ -6358,8 +6384,6 @@ create policy "Allow public all" on public."RiderKhatabook"
         setupEvents();
         switchTab('dashboard');
         renderAll();
-        pullFromCloud(true);
-        setupRealtimeSync();
       } catch (err) {
         console.error("Initialization error:", err);
       }
@@ -6367,10 +6391,11 @@ create policy "Allow public all" on public."RiderKhatabook"
 
     function setupRealtimeSync() {
       try {
+        if (!currentUser || currentUser.isGuest || !SYNC_ID) return;
         if (sbClient) {
           sbClient
             .channel('khatabook_realtime_' + SYNC_ID)
-            .on('postgres_changes', { event: '*', schema: 'public', table: SUPABASE_TABLE }, (payload) => {
+            .on('postgres_changes', { event: '*', schema: 'public', table: SUPABASE_TABLE, filter: 'id=eq.' + SYNC_ID }, (payload) => {
               console.log("Realtime change received from cloud:", payload);
               pullFromCloud(true);
             })
@@ -6380,19 +6405,22 @@ create policy "Allow public all" on public."RiderKhatabook"
         console.warn("Realtime subscription note:", e);
       }
 
-      // Auto-sync only when user returns to Chrome tab or app
-      document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible") {
-          pullFromCloud(false);
-        }
-      });
+      // Auto-sync only when authenticated user returns to Chrome tab or app
+      if (!window._visibilitySyncBound) {
+        window._visibilitySyncBound = true;
+        document.addEventListener("visibilitychange", () => {
+          if (document.visibilityState === "visible" && currentUser && !currentUser.isGuest) {
+            pullFromCloud(false);
+          }
+        });
 
-      // Periodic background sync every 20 seconds without disruptive focus toasts
-      setInterval(() => {
-        if (navigator.onLine && document.visibilityState === "visible") {
-          pullFromCloud(false);
-        }
-      }, 20000);
+        // Periodic background sync every 20 seconds without disruptive focus toasts
+        setInterval(() => {
+          if (navigator.onLine && document.visibilityState === "visible" && currentUser && !currentUser.isGuest) {
+            pullFromCloud(false);
+          }
+        }, 20000);
+      }
     }
 
 
@@ -7643,7 +7671,7 @@ function applyCustomOrderCycle() {
         elSalarySub.textContent = `Salary: ${inc.grossSalary.toFixed(2)} + Incentive: ${inc.incentives.toFixed(2)} ${getActiveCurrency()}`;
       }
 
-      // D. Total Expenses / Outflows Card (Har qisam ka outflow shamil hy)
+      // D. Total Expenses / Outflows Card (All cash outflows included)
       const elTotalOut = document.getElementById("kpiTotalOut");
       if (elTotalOut) elTotalOut.textContent = exp.totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       const outSubEl = document.getElementById("kpiTotalOutSub") || document.getElementById("kpiOutSub");
@@ -7668,7 +7696,7 @@ function applyCustomOrderCycle() {
 
       if (dashMonthlyEl) dashMonthlyEl.textContent = isAllMonths ? rent.totalCharged.toFixed(2) : agreedRent.toFixed(2);
       if (dashTitleEl) dashTitleEl.textContent = isAllMonths ? "Total Rent Charged" : "Monthly Rent";
-      if (dashSubEl) dashSubEl.textContent = isAllMonths ? `${rent.records.length} Records` : "Auto liability (+)";
+      if (dashSubEl) dashSubEl.textContent = isAllMonths ? `${rent.records.length} Records` : "Monthly rent charge";
 
       const dashCycleRentPaidEl = document.getElementById("dashCycleRentPaid");
       if (dashCycleRentPaidEl) dashCycleRentPaidEl.textContent = exp.rentPaid.toFixed(2);
@@ -8508,9 +8536,10 @@ function applyCustomOrderCycle() {
         if (!parsed.body || !parsed.body.innerHTML.trim()) throw new Error('Report content is empty');
 
         const safeFileName = String(fileName).replace(/\.html?$/i, '.pdf');
-        const isPortrait = /Loans_Statement/i.test(safeFileName);
+        const isLandscape = /Landscape/i.test(safeFileName);
+        const isPortrait = !isLandscape; // Default ALL reports to Portrait for crystal clear legibility
         const pageWidthPx = isPortrait ? 794 : 1123; // A4 at 96 CSS px/in
-        const contentWidthPx = isPortrait ? 718 : 1047; // leave page margins inside PDF
+        const contentWidthPx = isPortrait ? 740 : 1047; // leave clean page margins inside PDF
         const reportStyles = Array.from(parsed.head.querySelectorAll('style'))
           .map(style => style.textContent || '')
           .join('\n')
@@ -8596,6 +8625,8 @@ function applyCustomOrderCycle() {
       const table = tbody ? tbody.closest('table') : null;
       if (!table) { showToast('Ledger table not found.', false); return; }
       const copy = table.cloneNode(true);
+
+      // Clean interactive elements from copied table
       copy.querySelectorAll('tr').forEach(row => {
         const cells = row.querySelectorAll('th, td');
         if (cells.length) {
@@ -8604,26 +8635,216 @@ function applyCustomOrderCycle() {
         }
       });
       copy.querySelectorAll('button, input, select').forEach(el => el.remove());
+
       const cycleSelect = document.getElementById('activeMonthFilter');
       const cycleLabel = cycleSelect && cycleSelect.selectedOptions.length
-        ? cycleSelect.selectedOptions[0].textContent.trim() : 'Selected Month';
+        ? cycleSelect.selectedOptions[0].textContent.trim() : 'All Records';
       const safeTitle = String(reportTitle || 'Ledger').replace(/[<>]/g, '');
       const dateStr = new Date().toISOString().slice(0, 10);
+      const currency = getActiveCurrency();
+
+      // Dynamic Total Calculation & Summary Generation based on tbodyId
+      let summaryHtml = '';
+      let tfootHtml = '';
+      const rows = Array.from(copy.querySelectorAll('tbody tr'));
+
+      if (tbodyId === 'lenDenTableBody') {
+        // Loans & Borrowing Ledger: Col 2 = Given (Out), Col 3 = Received (In)
+        let totalGiven = 0;
+        let totalReceived = 0;
+        rows.forEach(r => {
+          const cells = r.querySelectorAll('td');
+          if (cells.length >= 4) {
+            const outVal = parseFloat(cells[2]?.textContent?.replace(/[^0-9.-]/g, '')) || 0;
+            const inVal = parseFloat(cells[3]?.textContent?.replace(/[^0-9.-]/g, '')) || 0;
+            totalGiven += outVal;
+            totalReceived += inVal;
+          }
+        });
+        const net = totalGiven - totalReceived;
+        const statusLabel = net > 0 ? 'Receivable (Due)' : net < 0 ? 'Payable (Owed)' : 'Settled (Cleared)';
+        const statusColor = net > 0 ? '#059669' : net < 0 ? '#e11d48' : '#0f172a';
+
+        summaryHtml = `
+          <div class="summary">
+            <div class="box"><div class="label">Total Given (Out)</div><div class="value" style="color:#e11d48;">${totalGiven.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} ${currency}</div></div>
+            <div class="box"><div class="label">Total Received (In)</div><div class="value" style="color:#059669;">${totalReceived.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} ${currency}</div></div>
+            <div class="box"><div class="label">Net Balance</div><div class="value" style="color:${statusColor};">${Math.abs(net).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} ${currency} <span style="font-size:11px;font-weight:bold;">(${statusLabel})</span></div></div>
+          </div>
+        `;
+        tfootHtml = `
+          <tfoot>
+            <tr style="background:#f1f5f9;border-top:2px solid #94a3b8;font-weight:bold;">
+              <th colspan="2" style="padding:10px 8px;font-size:13px;font-weight:900;color:#0f172a;">GRAND TOTAL</th>
+              <th style="padding:10px 8px;text-align:right;font-size:13px;font-weight:900;color:#e11d48;font-family:monospace;">${totalGiven.toFixed(2)} ${currency}</th>
+              <th style="padding:10px 8px;text-align:right;font-size:13px;font-weight:900;color:#059669;font-family:monospace;">${totalReceived.toFixed(2)} ${currency}</th>
+              <th style="padding:10px 8px;font-size:12px;font-weight:800;color:#0f172a;">Net: ${Math.abs(net).toFixed(2)} ${currency}</th>
+            </tr>
+          </tfoot>
+        `;
+      } else if (tbodyId === 'roomRentTableBody') {
+        // Room Rent Ledger: Col 1 = Charged, Col 2 = Paid, Col 3 = Balance
+        let totalCharged = 0;
+        let totalPaid = 0;
+        rows.forEach(r => {
+          const cells = r.querySelectorAll('td');
+          if (cells.length >= 4) {
+            const cVal = parseFloat(cells[1]?.textContent?.replace(/[^0-9.-]/g, '')) || 0;
+            const pVal = parseFloat(cells[2]?.textContent?.replace(/[^0-9.-]/g, '')) || 0;
+            totalCharged += cVal;
+            totalPaid += pVal;
+          }
+        });
+        const outstanding = totalCharged - totalPaid;
+        const statusLabel = outstanding > 0 ? 'Dues (Outstanding Rent)' : outstanding < 0 ? 'Advance Paid' : 'Settled';
+        const statusColor = outstanding > 0 ? '#e11d48' : '#059669';
+
+        summaryHtml = `
+          <div class="summary">
+            <div class="box"><div class="label">Total Rent Charged</div><div class="value" style="color:#e11d48;">${totalCharged.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} ${currency}</div></div>
+            <div class="box"><div class="label">Total Rent Paid</div><div class="value" style="color:#059669;">${totalPaid.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} ${currency}</div></div>
+            <div class="box"><div class="label">Net Outstanding</div><div class="value" style="color:${statusColor};">${Math.abs(outstanding).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} ${currency} <span style="font-size:11px;font-weight:bold;">(${statusLabel})</span></div></div>
+          </div>
+        `;
+        tfootHtml = `
+          <tfoot>
+            <tr style="background:#f1f5f9;border-top:2px solid #94a3b8;font-weight:bold;">
+              <th style="padding:10px 8px;font-size:13px;font-weight:900;color:#0f172a;">GRAND TOTAL</th>
+              <th style="padding:10px 8px;text-align:right;font-size:13px;font-weight:900;color:#e11d48;font-family:monospace;">${totalCharged.toFixed(2)} ${currency}</th>
+              <th style="padding:10px 8px;text-align:right;font-size:13px;font-weight:900;color:#059669;font-family:monospace;">${totalPaid.toFixed(2)} ${currency}</th>
+              <th style="padding:10px 8px;text-align:right;font-size:13px;font-weight:900;color:${statusColor};font-family:monospace;">${Math.abs(outstanding).toFixed(2)} ${currency}</th>
+            </tr>
+          </tfoot>
+        `;
+      } else if (tbodyId === 'foodTableBody') {
+        // Daily Living Expenses: Col 3 = Amount
+        let totalExpense = 0;
+        rows.forEach(r => {
+          const cells = r.querySelectorAll('td');
+          if (cells.length >= 4) {
+            const amt = parseFloat(cells[3]?.textContent?.replace(/[^0-9.-]/g, '')) || 0;
+            totalExpense += amt;
+          }
+        });
+        summaryHtml = `
+          <div class="summary">
+            <div class="box"><div class="label">Total Recorded Expenses</div><div class="value" style="color:#e11d48;">${totalExpense.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} ${currency}</div></div>
+            <div class="box"><div class="label">Total Entries Count</div><div class="value" style="color:#0f172a;">${rows.length} entries</div></div>
+          </div>
+        `;
+        tfootHtml = `
+          <tfoot>
+            <tr style="background:#f1f5f9;border-top:2px solid #94a3b8;font-weight:bold;">
+              <th colspan="3" style="padding:10px 8px;font-size:13px;font-weight:900;color:#0f172a;">TOTAL LIVING EXPENSES</th>
+              <th style="padding:10px 8px;text-align:right;font-size:14px;font-weight:900;color:#e11d48;font-family:monospace;">${totalExpense.toFixed(2)} ${currency}</th>
+            </tr>
+          </tfoot>
+        `;
+      } else if (tbodyId === 'ordersTableBody') {
+        // Orders & Deliveries: Col 1 = Count, Col 3 = Earn
+        let totalOrders = 0;
+        let totalEarnings = 0;
+        rows.forEach(r => {
+          const cells = r.querySelectorAll('td');
+          if (cells.length >= 4) {
+            const cnt = parseInt(cells[1]?.textContent?.replace(/[^0-9]/g, ''), 10) || 0;
+            const earn = parseFloat(cells[3]?.textContent?.replace(/[^0-9.-]/g, '')) || 0;
+            totalOrders += cnt;
+            totalEarnings += earn;
+          }
+        });
+        summaryHtml = `
+          <div class="summary">
+            <div class="box"><div class="label">Total Deliveries Count</div><div class="value" style="color:#0f172a;">${totalOrders} orders</div></div>
+            <div class="box"><div class="label">Total Orders Earnings</div><div class="value" style="color:#059669;">${totalEarnings.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} ${currency}</div></div>
+          </div>
+        `;
+        tfootHtml = `
+          <tfoot>
+            <tr style="background:#f1f5f9;border-top:2px solid #94a3b8;font-weight:bold;">
+              <th style="padding:10px 8px;font-size:13px;font-weight:900;color:#0f172a;">GRAND TOTAL</th>
+              <th style="padding:10px 8px;text-align:right;font-size:14px;font-weight:900;color:#0f172a;font-family:monospace;">${totalOrders}</th>
+              <th></th>
+              <th style="padding:10px 8px;text-align:right;font-size:14px;font-weight:900;color:#059669;font-family:monospace;">${totalEarnings.toFixed(2)} ${currency}</th>
+            </tr>
+          </tfoot>
+        `;
+      } else if (tbodyId === 'statementTableBody') {
+        // Account Statement: Col 3 = In, Col 4 = Out
+        let totalIn = 0;
+        let totalOut = 0;
+        rows.forEach(r => {
+          const cells = r.querySelectorAll('td');
+          if (cells.length >= 5) {
+            const inVal = parseFloat(cells[3]?.textContent?.replace(/[^0-9.-]/g, '')) || 0;
+            const outVal = parseFloat(cells[4]?.textContent?.replace(/[^0-9.-]/g, '')) || 0;
+            totalIn += inVal;
+            totalOut += outVal;
+          }
+        });
+        const netCash = totalIn - totalOut;
+        summaryHtml = `
+          <div class="summary">
+            <div class="box"><div class="label">Total Real Cash In</div><div class="value" style="color:#059669;">${totalIn.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} ${currency}</div></div>
+            <div class="box"><div class="label">Total Real Cash Out</div><div class="value" style="color:#e11d48;">${totalOut.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} ${currency}</div></div>
+            <div class="box"><div class="label">Net Cash Flow</div><div class="value" style="color:${netCash >= 0 ? '#059669' : '#e11d48'};">${netCash >= 0 ? '+' : ''}${netCash.toFixed(2)} ${currency}</div></div>
+          </div>
+        `;
+        tfootHtml = `
+          <tfoot>
+            <tr style="background:#f1f5f9;border-top:2px solid #94a3b8;font-weight:bold;">
+              <th colspan="3" style="padding:10px 8px;font-size:13px;font-weight:900;color:#0f172a;">GRAND TOTAL</th>
+              <th style="padding:10px 8px;text-align:right;font-size:13px;font-weight:900;color:#059669;font-family:monospace;">${totalIn.toFixed(2)} ${currency}</th>
+              <th style="padding:10px 8px;text-align:right;font-size:13px;font-weight:900;color:#e11d48;font-family:monospace;">${totalOut.toFixed(2)} ${currency}</th>
+            </tr>
+          </tfoot>
+        `;
+      }
+
+      // Append tfoot to cloned table
+      if (tfootHtml) {
+        const oldFoot = copy.querySelector('tfoot');
+        if (oldFoot) oldFoot.remove();
+        copy.insertAdjacentHTML('beforeend', tfootHtml);
+      }
+
+      // Enhance copied table styling for maximum readability (Bold, Crisp & Large)
+      copy.querySelectorAll('td, th').forEach(cell => {
+        cell.style.padding = '9px 8px';
+        cell.style.fontSize = '12.5px';
+        cell.style.color = '#0f172a';
+        cell.style.fontWeight = '600';
+        cell.querySelectorAll('*').forEach(child => {
+          child.style.fontSize = '11.5px';
+          child.style.color = '#0f172a';
+          child.style.fontWeight = '600';
+        });
+      });
+
       const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${safeTitle}</title>
         <style>
-          @page { size: A4 landscape; margin: 12mm; }
-          body { font-family: Arial, sans-serif; color: #172033; padding: 12px; }
-          h1 { font-size: 20px; margin: 0 0 5px; color: #10233f; }
-          .meta { color: #475569; font-size: 11px; margin-bottom: 16px; }
-          table { width: 100%; border-collapse: collapse; font-size: 11px; }
-          th { background: #1c130e !important; color: #fef3c7 !important; text-align: left; }
-          th, td { border: 1px solid #cbd5e1; padding: 7px 6px; vertical-align: top; }
-          tr:nth-child(even) td { background: #f8fafc; }
-          tfoot td { font-weight: bold; background: #eef2f7 !important; }
-          .footer { margin-top: 16px; font-size: 9px; color: #64748b; text-align: right; }
+          @page { size: A4 portrait; margin: 10mm; }
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; color: #0f172a; padding: 12px; background: #ffffff; line-height: 1.4; }
+          h1 { font-size: 22px; font-weight: 800; margin: 0 0 4px; color: #0f172a; letter-spacing: -0.5px; }
+          .meta { color: #475569; font-size: 11px; margin-bottom: 14px; font-weight: 600; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
+          .summary { display: flex; gap: 10px; margin-bottom: 16px; }
+          .box { border: 2px solid #cbd5e1; border-radius: 10px; padding: 10px 14px; background: #ffffff; flex: 1; }
+          .label { font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; }
+          .value { font-size: 18px; font-weight: 900; margin-top: 4px; font-family: monospace; }
+          table { width: 100% !important; border-collapse: collapse !important; font-size: 12.5px !important; margin-top: 8px; }
+          th { background: #1c130e !important; color: #fef3c7 !important; padding: 10px 8px !important; font-size: 12.5px !important; font-weight: 800 !important; text-align: left; text-transform: uppercase; letter-spacing: 0.5px; }
+          th:first-child, td:first-child { width: 15% !important; white-space: nowrap !important; }
+          td { border: 1.5px solid #cbd5e1 !important; padding: 9px 8px !important; font-size: 12.5px !important; font-weight: 600 !important; color: #0f172a !important; }
+          tr:nth-child(even) td { background: #f8fafc !important; }
+          tfoot th { background: #f1f5f9 !important; color: #0f172a !important; font-size: 13px !important; font-weight: 900 !important; padding: 10px 8px !important; border-top: 2px solid #94a3b8; }
+          .footer { margin-top: 14px; font-size: 10px; color: #64748b; font-weight: bold; text-align: right; border-top: 1px solid #e2e8f0; padding-top: 6px; }
           @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
-        </style></head><body><h1>${safeTitle}</h1><div class="meta">Month: ${cycleLabel} &nbsp; | &nbsp; Generated: ${new Date().toLocaleString()}</div>
-        ${copy.outerHTML}<div class="footer">Rider Khatabook Dubai — Account Record</div>
+        </style></head><body>
+        <h1>${safeTitle}</h1>
+        <div class="meta">Scope: ${cycleLabel} &nbsp; | &nbsp; Generated: ${new Date().toLocaleString()} &nbsp; | &nbsp; Total Records: ${rows.length}</div>
+        ${summaryHtml}
+        ${copy.outerHTML}
+        <div class="footer">Rider Khatabook Dubai — Official Verified Report</div>
         <script>window.addEventListener('load',function(){setTimeout(function(){window.print();},350);});<\/script>
   <div id="printContainer"></div>
 </body></html>`;
@@ -8632,28 +8853,113 @@ function applyCustomOrderCycle() {
     }
 
     function exportPersonLedgerPDF(personName) {
-      const rows = (appState.transactions || [])
-        .filter(t => ['Loan', 'Loans', 'Loan', 'Loan', 'Loan'].includes(String(t.category || '').trim()) && String(t.person || '').trim().toLowerCase() === String(personName || '').trim().toLowerCase())
-        .sort((a, b) => toIsoDate(b.date).localeCompare(toIsoDate(a.date)));
-      if (!rows.length) { showToast('No records found for this account.', false); return; }
+      const targetNorm = (typeof sanitizeAccountName === 'function' ? sanitizeAccountName(personName || '') : String(personName || '')).trim().toLowerCase();
+      const isComp = targetNorm.includes("company") || targetNorm.includes("visa");
+      const isRent = targetNorm.includes("room rent") || targetNorm.includes("rent");
+
+      const rows = (appState.transactions || []).filter(t => {
+        const pNorm = (typeof sanitizeAccountName === 'function' ? sanitizeAccountName(t.person || '') : String(t.person || '')).trim().toLowerCase();
+        if (pNorm === targetNorm) return true;
+        if (isComp && (t.isCompanyLoan || t.isCompanyVisaLoan || pNorm.includes("company") || String(t.detail || '').toLowerCase().includes("company loan"))) return true;
+        if (isRent && (t.isRoomRent || pNorm.includes("room rent") || String(t.detail || '').toLowerCase().includes("room rent"))) return true;
+        return false;
+      }).sort((a, b) => {
+        const d = toIsoDate(b.date).localeCompare(toIsoDate(a.date));
+        if (d !== 0) return d;
+        return String(b.id || '').localeCompare(String(a.id || ''));
+      });
+
+      if (!rows.length) {
+        showToast('No records found for account: ' + personName, false);
+        return;
+      }
+
       const esc = v => escapeHtml(String(v == null ? '' : v));
-      const totalOut = rows.reduce((sum, t) => sum + (parseFloat(t.cash_out) || 0), 0);
-      const totalIn = rows.reduce((sum, t) => sum + (parseFloat(t.cash_in) || 0), 0);
+      let totalOut = 0;
+      let totalIn = 0;
+      rows.forEach(t => {
+        const cout = parseFloat(t.cash_out) || 0;
+        const cin = parseFloat(t.cash_in) || 0;
+        const principalPaid = (cout > 0 && typeof t.principal_amount !== 'undefined' && t.principal_amount !== null)
+          ? parseFloat(t.principal_amount)
+          : (cout - (parseFloat(t.interest_amount) || 0));
+        totalOut += principalPaid;
+        totalIn += cin;
+      });
+
       const net = totalOut - totalIn;
-      const currency = "AED";
-      const tableRows = rows.map(t => `<tr><td>${esc(t.date)}</td><td>${esc(t.detail || '-')}</td><td class="num out" style="color:#be123c;font-weight:bold">${(parseFloat(t.cash_out)||0).toFixed(2)} ${esc(t.currency || currency)}</td><td class="num in" style="color:#047857;font-weight:bold">${(parseFloat(t.cash_in)||0).toFixed(2)} ${esc(t.currency || currency)}</td><td>${esc(t.month || getMonthTagFromDate(t.date))}</td></tr>`).join('');
+      const currency = getActiveCurrency();
+      const tableRows = rows.map(t => {
+        const cout = parseFloat(t.cash_out) || 0;
+        const cin = parseFloat(t.cash_in) || 0;
+        const outStr = cout > 0 ? cout.toFixed(2) + ' ' + currency : '—';
+        const inStr = cin > 0 ? cin.toFixed(2) + ' ' + currency : '—';
+        return `<tr>
+          <td style="font-weight:700;white-space:nowrap;">${esc(t.date)}</td>
+          <td style="font-weight:500;">${esc(t.detail || '-')}</td>
+          <td class="num" style="color:#e11d48;font-weight:800;">${outStr}</td>
+          <td class="num" style="color:#059669;font-weight:800;">${inStr}</td>
+          <td style="color:#64748b;font-weight:600;">${esc(t.month || getMonthTagFromDate(t.date))}</td>
+        </tr>`;
+      }).join('');
+
       const safeName = esc(personName);
       const dateStr = new Date().toISOString().slice(0, 10);
-      const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Loans Ledger - ${safeName}</title>
-      <style>@page{size:A4 portrait;margin:12mm}body{font-family:Arial,sans-serif;color:#172033;padding:12px}h1{font-size:21px;margin:0 0 5px;color:#10233f}.meta{font-size:11px;color:#64748b;margin-bottom:16px}.summary{display:flex;gap:10px;margin:12px 0 18px;flex-wrap:wrap}.box{border:1px solid #cbd5e1;border-radius:7px;padding:10px;min-width:105px;flex:1}.label{font-size:10px;color:#64748b}.value{font-size:15px;font-weight:bold;margin-top:4px}table{width:100%;border-collapse:collapse;font-size:11px}th{background:#1c130e!important;color:#fef3c7!important;text-align:left}th,td{border:1px solid #cbd5e1;padding:7px 6px;vertical-align:top}tr:nth-child(even) td{background:#f8fafc}.num{text-align:right;font-variant-numeric:tabular-nums}.footer{margin-top:16px;font-size:9px;color:#64748b;text-align:right}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>
-      <h1>Loans Ledger — ${safeName}</h1><div class="meta">Individual account statement &nbsp; | &nbsp; Generated: ${new Date().toLocaleString()} &nbsp; | &nbsp; Entries: ${rows.length}</div>
-      <div class="summary"><div class="box"><div class="label">Total Diye (Out)</div><div class="value" style="color:#be123c">${totalOut.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} ${currency}</div></div><div class="box"><div class="label">Total Liye (In)</div><div class="value" style="color:#047857">${totalIn.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} ${currency}</div></div><div class="box"><div class="label">Net Balance (Diye − Liye)</div><div class="value">${Math.abs(net).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} ${currency} ${net>0?'(Receivable)':net<0?'(Payable)':'(Settled)'}</div></div></div>
-      <table><thead><tr><th>Date</th><th>Detail / Description</th><th>Diye (Out) ${currency}</th><th>Liye (In) ${currency}</th><th>Month</th></tr></thead><tbody>${tableRows}</tbody><tfoot><tr><th colspan="2">TOTAL</th><th class="num" style="color:#be123c">${totalOut.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} ${currency}</th><th class="num" style="color:#047857">${totalIn.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} ${currency}</th><th></th></tr></tfoot></table><div class="footer">Rider Khatabook Dubai — Individual Account Record</div>
-      <script>window.addEventListener('load',function(){setTimeout(function(){window.print();},350)});<\/script>
+      const statusLabel = net > 0 ? 'Receivable (Due)' : net < 0 ? 'Payable (Owed)' : 'Settled (Cleared)';
+      const statusColor = net > 0 ? '#059669' : net < 0 ? '#e11d48' : '#0f172a';
+
+      const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Account Statement - ${safeName}</title>
+      <style>
+        @page { size: A4 portrait; margin: 10mm; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; color: #0f172a; padding: 12px; line-height: 1.4; background: #ffffff; }
+        h1 { font-size: 22px; font-weight: 800; margin: 0 0 4px; color: #0f172a; letter-spacing: -0.5px; }
+        .meta { font-size: 11px; color: #475569; margin-bottom: 14px; font-weight: 600; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
+        .summary { display: flex; gap: 10px; margin-bottom: 16px; }
+        .box { border: 2px solid #cbd5e1; border-radius: 10px; padding: 10px 14px; background: #ffffff; flex: 1; }
+        .label { font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; }
+        .value { font-size: 18px; font-weight: 900; margin-top: 4px; font-family: monospace; }
+        table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 8px; }
+        th { background: #1c130e !important; color: #fef3c7 !important; padding: 10px 8px; font-size: 12.5px; font-weight: 800; text-align: left; text-transform: uppercase; letter-spacing: 0.5px; }
+        td { border: 1.5px solid #cbd5e1; padding: 9px 8px; font-size: 12.5px; color: #0f172a !important; vertical-align: middle; }
+        tr:nth-child(even) td { background: #f8fafc; }
+        .num { text-align: right; font-family: monospace; font-size: 13px; font-weight: 800; }
+        tfoot th { background: #f1f5f9 !important; color: #0f172a !important; font-size: 13px; font-weight: 900; padding: 10px 8px; border-top: 2px solid #94a3b8; }
+        .footer { margin-top: 16px; font-size: 10px; color: #64748b; font-weight: bold; text-align: right; border-top: 1px solid #e2e8f0; padding-top: 6px; }
+        @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+      </style></head><body>
+      <h1>Statement Ledger — ${safeName}</h1>
+      <div class="meta">Account Record &nbsp; | &nbsp; Generated: ${new Date().toLocaleString()} &nbsp; | &nbsp; Total Entries: ${rows.length}</div>
+      <div class="summary">
+        <div class="box"><div class="label">Total Given (Out)</div><div class="value" style="color:#e11d48;">${totalOut.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} ${currency}</div></div>
+        <div class="box"><div class="label">Total Received (In)</div><div class="value" style="color:#059669;">${totalIn.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} ${currency}</div></div>
+        <div class="box"><div class="label">Net Balance</div><div class="value" style="color:${statusColor};">${Math.abs(net).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} ${currency} <span style="font-size:11px;font-weight:bold;">(${statusLabel})</span></div></div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:15%;white-space:nowrap;">Date</th>
+            <th style="width:43%;">Detail / Description</th>
+            <th style="width:16%;text-align:right;">Given (Out)</th>
+            <th style="width:16%;text-align:right;">Received (In)</th>
+            <th style="width:10%;">Month</th>
+          </tr>
+        </thead>
+        <tbody>${tableRows}</tbody>
+        <tfoot>
+          <tr>
+            <th colspan="2">TOTAL</th>
+            <th class="num" style="color:#e11d48;">${totalOut.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} ${currency}</th>
+            <th class="num" style="color:#059669;">${totalIn.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} ${currency}</th>
+            <th></th>
+          </tr>
+        </tfoot>
+      </table>
+      <div class="footer">Rider Khatabook Dubai — Official Verified Statement Ledger</div>
+      <script>window.addEventListener('load',function(){setTimeout(function(){window.print();},350);});<\/script>
   <div id="printContainer"></div>
 </body></html>`;
 
-      printOrDownloadReport(html, `Loans_Statement_${safeName.replace(/\s+/g, '_')}_${dateStr}.pdf`);
+      printOrDownloadReport(html, `Statement_${safeName.replace(/\s+/g, '_')}_${dateStr}.pdf`);
     }
 
     // ================= 5. REMITTANCE =================
@@ -10308,7 +10614,7 @@ function applyCustomOrderCycle() {
     var gateAuthMode = "login";
     var isSubmittingAuth = false;
     var SUPER_ADMIN_EMAIL = "alir0436@gmail.com";
-    var ADMIN_EMAILS = ["alir0436@gmail.com"];
+    var ADMIN_EMAILS = ["alir0436@gmail.com", "raazali290@gmail.com"];
 
     function isSuperAdminEmail(email) {
       if (!email) return false;
@@ -10382,47 +10688,68 @@ function applyCustomOrderCycle() {
 
         SYNC_ID = isSuperAdmin() ? "ali_raza_data" : currentUser.id;
         const uStorageKey = getCurrentStorageKey();
-        if (!safeGetItem(uStorageKey)) {
-          if (isSuperAdmin()) {
-            // Clean empty state on first login
+
+        if (!isSuperAdmin()) {
+          // Strict Zero-Data Isolation for regular rider accounts:
+          // A newly registered or logged in rider must NEVER inherit guest data or Ali Raza owner data!
+          const existingRaw = safeGetItem(uStorageKey);
+          if (!existingRaw) {
+            // Brand new account on this device: strictly 100% clean blank state
+            resetToBlankKhatabook(currentUser?.user_metadata?.name || "Rider", currentUser?.email || "");
+            saveToStorage(false, false);
           } else {
-            // Strict Isolation: Regular riders MUST NEVER inherit Ali Raza owner data!
-            const guestData = safeGetItem("rider_khatabook_guest");
-            if (guestData) {
-              try {
-                const gParsed = JSON.parse(guestData);
-                if (gParsed && gParsed.userEmail !== SUPER_ADMIN_EMAIL) {
-                  safeSetItem(uStorageKey, guestData);
-                }
-              } catch(e) {}
-            }
-          }
-        } else if (!isSuperAdmin()) {
-          // Clean up any legacy leaked Ali owner transactions from regular rider storage:
-          try {
-            const existingRaw = safeGetItem(uStorageKey);
-            if (existingRaw) {
+            // Existing rider storage: Deep audit to purge any leaked Ali Raza owner records or sample data
+            try {
               const existingParsed = JSON.parse(existingRaw);
+              let needsPurge = false;
+
+              if (existingParsed.userEmail && isSuperAdminEmail(existingParsed.userEmail)) {
+                needsPurge = true;
+              }
+
               const aliTxIds = new Set([
                 "tx_1793780252738", "tx_1793780201900", "tx_rr_1793780179413",
                 "tx_1793780164785", "tx_1793780116890", "tx_1793780092158",
                 "tx_1793780065977", "tx_1793780039823", "tx_1793780023058",
                 "tx_1793780005483", "tx_1793779990220", "tx_1793779980088",
                 "tx_1793779961961", "tx_1793779950124", "tx_1793779927418",
-                "tx_1793763892127", "rr_auto_charge_2026-11-16"
+                "tx_1793763892127", "rr_auto_charge_2026-11-16",
+                ...COMPANY_LOAN_REPORT_ENTRIES.map(e => String(e.id)),
+                ...ROOM_RENT_REPORT_ENTRIES.map(e => String(e.id))
               ]);
-              const txs = existingParsed.transactions || [];
-              const containsAliData = txs.some(t => aliTxIds.has(t.id) || t.isAutoRentCharge || t.isCompanyVisaLoan);
-              if (containsAliData) {
-                console.warn("Purging legacy leaked owner records from regular rider storage");
-                existingParsed.transactions = txs.filter(t => !aliTxIds.has(t.id) && !t.isAutoRentCharge && !t.isCompanyVisaLoan);
-                if ((existingParsed.orders || []).some(o => o.id === 'ord_1793779941713')) {
+
+              const txs = Array.isArray(existingParsed.transactions) ? existingParsed.transactions : [];
+              const containsAliData = txs.some(t => 
+                aliTxIds.has(String(t.id)) || 
+                t.isCompanyLoan || 
+                t.isCompanyVisaLoan || 
+                t.isAutoRentCharge ||
+                /Food with paroya|Samosa tea|Enoc|Milk and bnana|Gril khai|Tamara instalment|Fountain Head|Company Loan|Room Rent/i.test(t.description || t.note || t.person || t.accountName || "")
+              );
+
+              if (needsPurge || containsAliData) {
+                console.warn("Purging leaked Ali Raza data from regular rider storage:", currentUser.email);
+                existingParsed.transactions = txs.filter(t => 
+                  !aliTxIds.has(String(t.id)) && 
+                  !t.isCompanyLoan && 
+                  !t.isCompanyVisaLoan && 
+                  !t.isAutoRentCharge &&
+                  !/Food with paroya|Samosa tea|Enoc|Milk and bnana|Gril khai|Tamara instalment|Fountain Head|Company Loan|Room Rent/i.test(t.description || t.note || t.person || t.accountName || "")
+                );
+                if (existingParsed.transactions.length === 0) {
                   existingParsed.orders = [];
+                  existingParsed.roomRentRecords = [];
+                  existingParsed.persons = {};
+                  existingParsed.agreedMonthlyRent = 0;
                 }
+                existingParsed.userEmail = currentUser.email;
+                existingParsed.riderName = currentUser.user_metadata?.name || "Rider";
                 safeSetItem(uStorageKey, JSON.stringify(existingParsed));
               }
+            } catch(e) {
+              console.warn("Rider storage isolation audit error:", e);
             }
-          } catch(e) {}
+          }
         }
 
         // Load isolated user data and paint DOM BEFORE showing the wrapper!
@@ -10431,6 +10758,9 @@ function applyCustomOrderCycle() {
         updateAuthUI();
         renderKhataList();
         renderAll();
+        if (!currentUser.isGuest) {
+          setupRealtimeSync();
+        }
 
         // UNLOCKED: Only reveal screen once this user's data is safely rendered in memory and DOM!
         if (gate) gate.classList.add("hidden");
@@ -10570,11 +10900,24 @@ function applyCustomOrderCycle() {
 
           if (data.user) {
             SYNC_ID = isOwnerSignup ? "ali_raza_data" : data.user.id;
+            // Clean local guest leftovers completely
+            safeRemoveItem("rider_khatabook_guest");
+            safeRemoveItem("rider_khatabook_guest_khatas_list");
+
             if (!isOwnerSignup) {
+              // Guarantee 100% blank slate for new rider
               resetToBlankKhatabook(cleanName, cleanEmail);
+              currentUser = data.user;
+              const uKey = getCurrentStorageKey();
+              safeRemoveItem(uKey);
+              safeRemoveItem(uKey + "_khatas_list");
+              userKhatas = [{ id: "default", name: "Primary Khata (Main)", isDefault: true }];
+              activeKhataId = "default";
+              saveUserKhatasMeta();
+              saveToStorage(false, false);
             }
             applyAuthState(data.user);
-            showToast("🎉 Account created successfully!");
+            showToast("🎉 Account created successfully! Fresh blank khata ready.");
             await pushToCloud();
           } else {
             if (successEl) {
@@ -10587,11 +10930,11 @@ function applyCustomOrderCycle() {
         console.error("Auth pipeline error:", err);
         let msg = err.message || "Authentication error occurred.";
         if (msg.includes("Invalid login credentials")) {
-          msg = "Ghalat email ya password. Please verify your credentials.";
+          msg = "Invalid email or password. Please verify your credentials.";
         } else if (msg.includes("already registered")) {
-          msg = "Yeh email pehle se registered hai. Baraye meherbani 'Log In' tab par jayein.";
+          msg = "This email is already registered. Please proceed to the 'Log In' tab.";
         } else if (msg.includes("Email not confirmed")) {
-          msg = "Email verification zaroori hai. Inbox check karein ya Supabase mein confirm email disable karein.";
+          msg = "Email verification is required. Please check your inbox or disable email confirmation in Supabase.";
         }
         if (errorEl) {
           errorEl.textContent = msg;
@@ -10730,7 +11073,7 @@ function applyCustomOrderCycle() {
       const email = (emailInput?.value || "").trim().toLowerCase();
       if (!email || !email.includes("@")) {
         if (errBox) {
-          errBox.textContent = "Baraye meherbani durust email address likhein.";
+          errBox.textContent = "Please enter a valid email address.";
           errBox.classList.remove("hidden");
         }
         return;
@@ -10739,7 +11082,7 @@ function applyCustomOrderCycle() {
       if (!sbClient) initSupabaseClient();
       if (!sbClient) {
         if (errBox) {
-          errBox.textContent = "Supabase connection unavailable. Internet check karein.";
+          errBox.textContent = "Supabase connection unavailable. Please check your internet connection.";
           errBox.classList.remove("hidden");
         }
         return;
@@ -10758,15 +11101,15 @@ function applyCustomOrderCycle() {
         if (error) throw error;
 
         if (succBox) {
-          succBox.innerHTML = "✅ <b>Reset link bhej diya gaya hai!</b><br>Apni email inbox (aur Spam folder) check karein: <b>" + escapeHtml(email) + "</b>. Email me diye gaye link par click kar ke naya password set karein.";
+          succBox.innerHTML = "✅ <b>Reset link sent successfully!</b><br>Please check your email inbox (and Spam folder): <b>" + escapeHtml(email) + "</b>. Click the link in the email to set your new password.";
           succBox.classList.remove("hidden");
         }
-        showToast("📧 Reset link send ho gaya hai!");
+        showToast("📧 Password reset link sent successfully!");
       } catch (err) {
         console.error("Password reset error:", err);
-        let msg = err.message || "Reset link bhejne me masla pesh aaya.";
+        let msg = err.message || "Failed to send password reset link.";
         if (msg.includes("rate limit")) {
-          msg = "Bohat sari requests bheji gayi hain. Baraye meherbani 1 minute baad dobara try karein.";
+          msg = "Too many requests. Please wait 1 minute before trying again.";
         }
         if (errBox) {
           errBox.textContent = msg;
@@ -10790,14 +11133,14 @@ function applyCustomOrderCycle() {
 
       if (!pass || pass.length < 6) {
         if (errBox) {
-          errBox.textContent = "Password kam az kam 6 characters ka hona zaroori hai.";
+          errBox.textContent = "Password must be at least 6 characters long.";
           errBox.classList.remove("hidden");
         }
         return;
       }
       if (pass !== confirm) {
         if (errBox) {
-          errBox.textContent = "Dono passwords match nahi kar rahe.";
+          errBox.textContent = "Passwords do not match. Please verify both fields.";
           errBox.classList.remove("hidden");
         }
         return;
@@ -10810,7 +11153,7 @@ function applyCustomOrderCycle() {
         if (error) throw error;
 
         closeModal("modalUpdatePassword");
-        showToast("✅ Password kamyabi se update ho gaya!");
+        showToast("✅ Password updated successfully!");
         if (data && data.user) {
           applyAuthState(data.user);
           await pullFromCloud(true);
@@ -10818,7 +11161,7 @@ function applyCustomOrderCycle() {
       } catch (err) {
         console.error("Update password error:", err);
         if (errBox) {
-          errBox.textContent = err.message || "Password update nahi ho saka.";
+          errBox.textContent = err.message || "Failed to update password. Please try again.";
           errBox.classList.remove("hidden");
         }
       } finally {
@@ -11716,15 +12059,34 @@ function applyCustomOrderCycle() {
               }
             });
           } else {
-            // Strict isolation: rider accounts or secondary Khatas must NEVER contain Ali's historical report entries!
+            // Strict isolation: rider accounts or secondary Khatas must NEVER contain Ali's historical report entries or leaked data!
             // Purge any leaked Company Loan or Room Rent entries that were previously injected
             const leakedIds = new Set([
+              "tx_1793780252738", "tx_1793780201900", "tx_rr_1793780179413",
+              "tx_1793780164785", "tx_1793780116890", "tx_1793780092158",
+              "tx_1793780065977", "tx_1793780039823", "tx_1793780023058",
+              "tx_1793780005483", "tx_1793779990220", "tx_1793779980088",
+              "tx_1793779961961", "tx_1793779950124", "tx_1793779927418",
+              "tx_1793763892127", "rr_auto_charge_2026-11-16",
               ...COMPANY_LOAN_REPORT_ENTRIES.map(e => String(e.id)),
               ...ROOM_RENT_REPORT_ENTRIES.map(e => String(e.id))
             ]);
             const prevLen = appState.transactions.length;
-            appState.transactions = appState.transactions.filter(t => !leakedIds.has(String(t.id)));
+            appState.transactions = appState.transactions.filter(t => 
+              !leakedIds.has(String(t.id)) &&
+              !t.isCompanyLoan &&
+              !t.isCompanyVisaLoan &&
+              !t.isAutoRentCharge &&
+              !/Food with paroya|Samosa tea|Enoc|Milk and bnana|Gril khai|Tamara instalment|Fountain Head|Company Loan|Room Rent/i.test(t.description || t.note || t.person || t.accountName || "")
+            );
             if (appState.transactions.length !== prevLen) {
+              modifiedStorage = true;
+            }
+            if (appState.transactions.length === 0 && (parsed.userEmail && isSuperAdminEmail(parsed.userEmail))) {
+              appState.orders = [];
+              appState.roomRentRecords = [];
+              appState.persons = {};
+              appState.agreedMonthlyRent = 0;
               modifiedStorage = true;
             }
           }
@@ -11825,7 +12187,7 @@ function applyCustomOrderCycle() {
           sbClient.auth.onAuthStateChange((event, session) => {
             if (event === "PASSWORD_RECOVERY") {
               openModal("modalUpdatePassword");
-              showToast("🔑 Recovery link verified. Naya password enter karein.");
+              showToast("🔑 Recovery link verified. Please enter your new password.");
             } else if (event === "SIGNED_IN" && session && session.user) {
               currentUser = session.user;
               safeSetItem("rider_active_cached_user", JSON.stringify({
@@ -12037,7 +12399,7 @@ function applyCustomOrderCycle() {
           }
 
           try {
-            showToast("🔄 Cloud se latest data refresh ho raha hai...");
+            showToast("🔄 Refreshing latest data from cloud...");
             await pullFromCloud(true);
             renderAll();
             showToast("✅ All Khatas Synced!");
@@ -12081,7 +12443,7 @@ function applyCustomOrderCycle() {
       </div>
       <div class="p-3.5 space-y-2 text-xs modal-scrollable-body max-h-[60vh] overflow-y-auto">
         <div class="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-900 leading-relaxed">
-          ✅ <b>Watchdog Active:</b> Button clicks, calculations, aur data inputs par self-recovery active hai. Koi bhi code crash ya formula error app ko freeze nahi hone dega.
+          ✅ <b>Watchdog Active:</b> Automatic self-recovery is active across all buttons, calculations, and data inputs. Code crashes and formula errors are guarded from freezing the app.
         </div>
         <div id="aiLogsContainer" class="space-y-1.5 pt-1">
           <!-- Populated dynamically -->
