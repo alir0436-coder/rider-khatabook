@@ -2516,18 +2516,6 @@
       </button>
 
       <div class="pt-3 border-t border-amber-900/40 my-2 space-y-2">
-        <!-- Direct 1-Tap Mobile Storage Backup -->
-        <button type="button" onclick="openModal('modalBackup'); toggleDrawer(false);" class="w-full text-left px-3.5 py-2.5 rounded-xl bg-emerald-900/30 hover:bg-emerald-900/50 text-emerald-200 font-bold text-xs flex items-center justify-between transition border border-emerald-500/40 shadow-xs active:scale-95">
-          <div class="flex items-center space-x-2.5">
-            <span class="text-base">📦</span>
-            <div>
-              <div class="font-bold">Backup Data to Mobile</div>
-              <div class="text-[9px] text-emerald-400 font-normal">Phone storage me backup save karein</div>
-            </div>
-          </div>
-          <span class="text-emerald-400 font-bold text-sm">💾</span>
-        </button>
-
         <!-- Settings & App Tools -->
         <button type="button" onclick="openModal('modalSettingsTools'); toggleDrawer(false);" class="w-full text-left px-3.5 py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-200 font-bold text-xs flex items-center justify-between transition border border-amber-500/30 shadow-xs active:scale-95">
           <div class="flex items-center space-x-2.5">
@@ -4085,25 +4073,25 @@ create policy "Allow public all" on public."RiderKhatabook"
                     }
 
                     const isPrimaryKhata = (!kId || kId === "default");
-                    if (isPrimaryKhata) {
-                      // Guarantee all 17 Company Loan and 36 Room Rent report entries are present in remoteBook ONLY for primary khata
+                    if (isAli && isPrimaryKhata) {
+                      // Guarantee all 17 Company Loan and 36 Room Rent report entries are present in remoteBook ONLY for Super Admin Ali Raza's primary khata
                       const rTxMap = new Map(remoteBook.transactions.map(t => [String(t.id), t]));
                       COMPANY_LOAN_REPORT_ENTRIES.forEach(entry => {
-                        if (!delTxSet.has(entry.id) && !rTxMap.has(entry.id)) {
+                        if (!delTxSet.has(String(entry.id)) && !rTxMap.has(String(entry.id))) {
                           remoteBook.transactions.push(JSON.parse(JSON.stringify(entry)));
-                          rTxMap.set(entry.id, entry);
+                          rTxMap.set(String(entry.id), entry);
                           missingCloudEntries = true;
                         }
                       });
                       ROOM_RENT_REPORT_ENTRIES.forEach(entry => {
-                        if (!delTxSet.has(entry.id) && !rTxMap.has(entry.id)) {
+                        if (!delTxSet.has(String(entry.id)) && !rTxMap.has(String(entry.id))) {
                           remoteBook.transactions.push(JSON.parse(JSON.stringify(entry)));
-                          rTxMap.set(entry.id, entry);
+                          rTxMap.set(String(entry.id), entry);
                           missingCloudEntries = true;
                         }
                       });
                     } else {
-                      // Strict secondary Khata isolation: purge any leaked report entries
+                      // Strict isolation: rider accounts or secondary Khatas must NEVER contain Ali's report entries!
                       const leakedIds = new Set([
                         ...COMPANY_LOAN_REPORT_ENTRIES.map(e => String(e.id)),
                         ...ROOM_RENT_REPORT_ENTRIES.map(e => String(e.id))
@@ -5971,7 +5959,7 @@ create policy "Allow public all" on public."RiderKhatabook"
       agreedMonthlyRent: 0, // Blank starter: no rent agreement set
       monthlyRentRates: {},   // Monthly rent rates
       zoomLevel: 1.0,
-      transactions: JSON.parse(JSON.stringify([...COMPANY_LOAN_REPORT_ENTRIES, ...ROOM_RENT_REPORT_ENTRIES])), agreedMonthlyRent: 500,
+      transactions: [], agreedMonthlyRent: 0,
       roomRentRecords: [],
       orders: [],
       persons: {},
@@ -7875,14 +7863,16 @@ function applyCustomOrderCycle() {
 
     function deleteTxFromLedger(id) {
       showConfirmModal("Delete Entry?", "This transaction will be permanently deleted.", async () => {
+        const strId = String(id);
         if (!appState.deletedTxIds) appState.deletedTxIds = [];
-        if (!appState.deletedTxIds.includes(id)) appState.deletedTxIds.push(id);
+        if (!appState.deletedTxIds.map(String).includes(strId)) appState.deletedTxIds.push(strId);
         if (!appState.deletedRentIds) appState.deletedRentIds = [];
-        if (!appState.deletedRentIds.includes(id)) appState.deletedRentIds.push(id);
+        if (!appState.deletedRentIds.map(String).includes(strId)) appState.deletedRentIds.push(strId);
+        if (!appState.deletedRentIds.map(String).includes('rent_custom_' + strId)) appState.deletedRentIds.push('rent_custom_' + strId);
 
-        appState.transactions = (appState.transactions || []).filter(t => t.id !== id);
+        appState.transactions = (appState.transactions || []).filter(t => String(t.id) !== strId);
         if (appState.roomRentRecords) {
-          appState.roomRentRecords = appState.roomRentRecords.filter(r => r.id !== id && r.id !== ('rent_custom_' + id) && ('rent_custom_' + r.id) !== id);
+          appState.roomRentRecords = appState.roomRentRecords.filter(r => String(r.id) !== strId && String(r.id) !== ('rent_custom_' + strId) && ('rent_custom_' + String(r.id)) !== strId);
         }
         recomputePersonSummary();
         saveToStorage(true, true);
@@ -9017,16 +9007,17 @@ function applyCustomOrderCycle() {
 
     function deleteTransaction(id) {
       showConfirmModal("Delete Entry?", "This transaction record will be permanently deleted.", async () => {
+        const strId = String(id);
         if (!appState.deletedTxIds) appState.deletedTxIds = [];
-        if (!appState.deletedTxIds.includes(id)) appState.deletedTxIds.push(id);
+        if (!appState.deletedTxIds.map(String).includes(strId)) appState.deletedTxIds.push(strId);
         if (!appState.deletedRentIds) appState.deletedRentIds = [];
-        if (!appState.deletedRentIds.includes(id)) appState.deletedRentIds.push(id);
-        if (!appState.deletedRentIds.includes('rent_custom_' + id)) appState.deletedRentIds.push('rent_custom_' + id);
+        if (!appState.deletedRentIds.map(String).includes(strId)) appState.deletedRentIds.push(strId);
+        if (!appState.deletedRentIds.map(String).includes('rent_custom_' + strId)) appState.deletedRentIds.push('rent_custom_' + strId);
 
         // Permanently filter out the deleted transaction from active memory
-        appState.transactions = (appState.transactions || []).filter(t => t.id !== id);
+        appState.transactions = (appState.transactions || []).filter(t => String(t.id) !== strId);
         if (appState.roomRentRecords) {
-          appState.roomRentRecords = appState.roomRentRecords.filter(r => r.id !== id && r.id !== ('rent_custom_' + id) && ('rent_custom_' + r.id) !== id);
+          appState.roomRentRecords = appState.roomRentRecords.filter(r => String(r.id) !== strId && String(r.id) !== ('rent_custom_' + strId) && ('rent_custom_' + String(r.id)) !== strId);
         }
         recomputePersonSummary();
         saveToStorage(true, true);
@@ -9109,25 +9100,67 @@ function applyCustomOrderCycle() {
 
     function deletePersonKhata(personName) {
       showConfirmModal(
-        "Delete Account \"" + personName + "\"?",
+        `Delete Account "${personName}"?`,
         "All loan records and account history for " + personName + " will be permanently deleted.",
         async () => {
           if (!appState.deletedTxIds) appState.deletedTxIds = [];
+          if (!appState.deletedRentIds) appState.deletedRentIds = [];
+          const targetNorm = String(personName || '').trim().toLowerCase();
+          const isCompTarget = targetNorm.includes("company") || targetNorm.includes("visa");
+          const isRentTarget = targetNorm.includes("room rent") || targetNorm.includes("rent");
+
+          const matchedIds = new Set();
           (appState.transactions || []).forEach(t => {
-            if (String(t.person || '').trim() === String(personName).trim()) {
-              if (!appState.deletedTxIds.includes(t.id)) appState.deletedTxIds.push(t.id);
+            const pNorm = String(t.person || '').trim().toLowerCase();
+            const pSan = (typeof sanitizeAccountName === 'function' ? sanitizeAccountName(t.person || '') : String(t.person || '')).trim().toLowerCase();
+            const detailNorm = String(t.detail || '').toLowerCase();
+            let matches = (pNorm === targetNorm || pSan === targetNorm);
+
+            if (isCompTarget && (t.isCompanyLoan || t.isCompanyVisaLoan || pNorm.includes("company") || detailNorm.includes("company loan"))) {
+              matches = true;
+            }
+            if (isRentTarget && (t.isRoomRent || pNorm.includes("room rent") || detailNorm.includes("room rent"))) {
+              matches = true;
+            }
+
+            if (matches) {
+              const strId = String(t.id);
+              matchedIds.add(strId);
+              if (!appState.deletedTxIds.map(String).includes(strId)) {
+                appState.deletedTxIds.push(strId);
+              }
+              if (!appState.deletedRentIds.map(String).includes(strId)) {
+                appState.deletedRentIds.push(strId);
+              }
             }
           });
-          appState.transactions = (appState.transactions || []).filter(t => 
-            String(t.person || '').trim() !== String(personName).trim()
-          );
-          if (appState.persons && appState.persons[personName]) {
-            delete appState.persons[personName];
+
+          appState.transactions = (appState.transactions || []).filter(t => !matchedIds.has(String(t.id)));
+
+          if (isRentTarget && appState.roomRentRecords) {
+            appState.roomRentRecords = [];
           }
+
+          if (appState.persons) {
+            Object.keys(appState.persons).forEach(k => {
+              const kNorm = k.trim().toLowerCase();
+              const kSan = (typeof sanitizeAccountName === 'function' ? sanitizeAccountName(k) : k).trim().toLowerCase();
+              if (kNorm === targetNorm || kSan === targetNorm) {
+                delete appState.persons[k];
+              }
+              if (isCompTarget && (kNorm.includes("company") || kNorm.includes("visa"))) {
+                delete appState.persons[k];
+              }
+              if (isRentTarget && (kNorm.includes("room rent") || kNorm.includes("rent"))) {
+                delete appState.persons[k];
+              }
+            });
+          }
+
           recomputePersonSummary();
           saveToStorage(true, true);
           renderAll();
-          showToast("🗑️ Account for " + personName + " deleted successfully!");
+          showToast(`🗑️ Account "${personName}" deleted permanently!`);
           await pushToCloud();
         }
       );
@@ -11073,25 +11106,25 @@ function applyCustomOrderCycle() {
           appState.transactions = sanitizeAllAccountNames(Array.isArray(parsed.transactions) ? parsed.transactions : []).filter(t => !delTxSet.has(t.id));
           
           let modifiedStorage = false;
-          if (isPrimary) {
-            // Seed official Company Loan & Room Rent CreditBook report entries strictly into Primary Khata
+          if (isAli && isPrimary) {
+            // Seed official Company Loan & Room Rent CreditBook report entries strictly for Super Admin Ali Raza's Primary Khata
             const existingTxMap = new Map(appState.transactions.map(t => [String(t.id), t]));
             COMPANY_LOAN_REPORT_ENTRIES.forEach(entry => {
-              if (!delTxSet.has(entry.id) && !existingTxMap.has(entry.id)) {
+              if (!delTxSet.has(String(entry.id)) && !existingTxMap.has(String(entry.id))) {
                 appState.transactions.push(JSON.parse(JSON.stringify(entry)));
-                existingTxMap.set(entry.id, entry);
+                existingTxMap.set(String(entry.id), entry);
                 modifiedStorage = true;
               }
             });
             ROOM_RENT_REPORT_ENTRIES.forEach(entry => {
-              if (!delTxSet.has(entry.id) && !existingTxMap.has(entry.id)) {
+              if (!delTxSet.has(String(entry.id)) && !existingTxMap.has(String(entry.id))) {
                 appState.transactions.push(JSON.parse(JSON.stringify(entry)));
-                existingTxMap.set(entry.id, entry);
+                existingTxMap.set(String(entry.id), entry);
                 modifiedStorage = true;
               }
             });
           } else {
-            // Strict isolation: secondary Khata must NEVER contain primary report entries!
+            // Strict isolation: rider accounts or secondary Khatas must NEVER contain Ali's historical report entries!
             // Purge any leaked Company Loan or Room Rent entries that were previously injected
             const leakedIds = new Set([
               ...COMPANY_LOAN_REPORT_ENTRIES.map(e => String(e.id)),
@@ -11129,10 +11162,10 @@ function applyCustomOrderCycle() {
         console.warn("Load khata error:", e);
       }
 
-      // Default fallback: Only Primary Khata gets official Company Loan and Room Rent
+      // Default fallback: Only Super Admin Primary Khata gets official Company Loan and Room Rent
       const khataObj = userKhatas.find(k => k.id === activeKhataId);
       resetToBlankKhatabook(khataObj ? khataObj.name : "Rider", currentUser?.email || "");
-      if (isPrimary) {
+      if (isAli && isPrimary) {
         appState.transactions = JSON.parse(JSON.stringify([...COMPANY_LOAN_REPORT_ENTRIES, ...ROOM_RENT_REPORT_ENTRIES]));
         appState.agreedMonthlyRent = 500;
       } else {
