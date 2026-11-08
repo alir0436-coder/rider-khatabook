@@ -10300,9 +10300,9 @@ function applyCustomOrderCycle() {
 
       let filtered = (lastInspectedRows || []).filter(r => {
         const rData = r.data || {};
-        const isSuper = (r.id === "ali_raza_data" || isSuperAdminEmail(rData.userEmail));
-        const rName = (isSuper ? "Ali Raza" : (rData.riderName || ("Rider " + r.id))).toLowerCase();
-        const rEmail = (isSuper ? "alir0436@gmail.com" : (rData.userEmail || r.id)).toLowerCase();
+        const isSuper = isSuperAdminEmail(rData.userEmail) || r.id === "ali_raza_data" || r.id === "ali_raza_owner_data";
+        const rName = (rData.riderName || (isSuper ? "Ali Raza" : ("Rider " + r.id))).toLowerCase();
+        const rEmail = (rData.userEmail || (r.id === "ali_raza_data" ? "alir0436@gmail.com" : r.id)).toLowerCase();
 
         if (q && !rName.includes(q) && !rEmail.includes(q) && !String(r.id).toLowerCase().includes(q)) {
           return false;
@@ -10343,9 +10343,9 @@ function applyCustomOrderCycle() {
       let html = "";
       filtered.forEach((r, idx) => {
         const rData = r.data || {};
-        const isSuper = (r.id === "ali_raza_data" || isSuperAdminEmail(rData.userEmail));
-        const rName = isSuper ? "Ali Raza" : (rData.riderName || ("Rider " + (idx + 1)));
-        const rEmail = isSuper ? "alir0436@gmail.com" : (rData.userEmail || r.id);
+        const isSuper = isSuperAdminEmail(rData.userEmail) || r.id === "ali_raza_data" || r.id === "ali_raza_owner_data";
+        const rName = rData.riderName || (isSuper ? "Ali Raza" : ("Rider " + (idx + 1)));
+        const rEmail = rData.userEmail || (r.id === "ali_raza_data" ? "alir0436@gmail.com" : r.id);
         const orders = Array.isArray(rData.orders) ? rData.orders.length : 0;
 
         let pkg = 0;
@@ -10484,12 +10484,14 @@ function applyCustomOrderCycle() {
         setAdminBanner("Administrator Local Vault Active: Ready for cloud sync.", "info");
       }
 
-      // 5. Deduplicate rows by email so Ali Raza is not duplicated
+      // 5. Deduplicate rows by authentic email address
       const riderMap = new Map();
       rows.forEach(r => {
         const rData = r.data || {};
         let email = (rData.userEmail || "").toLowerCase().trim();
-        if (!email && r.id === "ali_raza_data") email = (currentUser && currentUser.email) ? currentUser.email.toLowerCase() : SUPER_ADMIN_EMAIL.toLowerCase();
+        if (!email && (r.id === "ali_raza_data" || r.id === "ali_raza_owner_data")) {
+          email = "alir0436@gmail.com";
+        }
         if (!email) email = r.id;
 
         if (riderMap.has(email)) {
@@ -10530,8 +10532,8 @@ function applyCustomOrderCycle() {
       const repaidEl = document.getElementById("inspectModalRepaid");
       const updatedEl = document.getElementById("inspectModalUpdated");
 
-      if (nameEl) nameEl.textContent = isSuper ? "Ali Raza (Super Admin)" : (rData.riderName || "Rider");
-      if (emailEl) emailEl.textContent = isSuper ? "alir0436@gmail.com" : (rData.userEmail || rider.id);
+      if (nameEl) nameEl.textContent = rData.riderName || (isSuper ? "Ali Raza (Super Admin)" : "Rider");
+      if (emailEl) emailEl.textContent = rData.userEmail || (rider.id === "ali_raza_data" ? "alir0436@gmail.com" : rider.id);
       if (ordersEl) ordersEl.textContent = `${(rData.orders || []).length} Days`;
 
       let pkg = 0, repaid = 0;
