@@ -3686,10 +3686,15 @@ create policy "Riders can only access own data" on public."RiderKhatabook"
           <div class="flex justify-between"><span class="text-slate-500">Loan Repaid So Far:</span><b id="inspectModalRepaid" class="font-mono text-emerald-700">0.00 AED</b></div>
           <div class="flex justify-between"><span class="text-slate-500">Last Active Cloud Sync:</span><span id="inspectModalUpdated" class="text-slate-700 font-mono text-[10px]">Just now</span></div>
         </div>
-        <button type="button" id="adminWipeRiderBtn" onclick="adminWipeRiderData()" class="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs transition shadow-sm flex items-center justify-center space-x-1.5">
-          <span>🗑️ Reset This Rider to 0 (Wipe Khata)</span>
-        </button>
-        <button type="button" onclick="closeModal('modalAdminInspect')" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition">
+        <div class="flex space-x-2 pt-1">
+          <button type="button" id="adminWipeRiderBtn" onclick="adminWipeRiderData()" class="flex-1 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs transition shadow-xs flex items-center justify-center space-x-1">
+            <span>🔄 Reset to 0</span>
+          </button>
+          <button type="button" id="adminDeleteRiderBtn" onclick="adminDeleteRiderFromCloud()" class="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs transition shadow-xs flex items-center justify-center space-x-1">
+            <span>🗑️ Delete from Cloud</span>
+          </button>
+        </div>
+        <button type="button" onclick="closeModal('modalAdminInspect')" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition mt-1">
           Close Inspection
         </button>
       </div>
@@ -9592,15 +9597,15 @@ function applyCustomOrderCycle() {
     var gateAuthMode = "login";
     var isSubmittingAuth = false;
     var SUPER_ADMIN_EMAIL = "alir0436@gmail.com";
-    var ADMIN_EMAILS = ["alir0436@gmail.com", "raazali290@gmail.com"];
+    var ADMIN_EMAILS = ["alir0436@gmail.com"];
 
     function isSuperAdminEmail(email) {
       if (!email) return false;
       const clean = String(email).toLowerCase().trim();
-      return ADMIN_EMAILS.includes(clean);
+      return clean === SUPER_ADMIN_EMAIL.toLowerCase().trim();
     }
 
-    // Strict Security: Owner check recognizes both raazali290@gmail.com and alir0436@gmail.com
+    // Strict Security: Only alir0436@gmail.com is the sole Super Admin
     function isSuperAdmin() {
       if (!currentUser || !currentUser.email) return false;
       if (currentUser.isGuest) return false;
@@ -10586,6 +10591,10 @@ function applyCustomOrderCycle() {
       if (wipeBtn) {
         wipeBtn.style.display = isSuper ? "none" : "flex";
       }
+      const deleteBtn = document.getElementById("adminDeleteRiderBtn");
+      if (deleteBtn) {
+        deleteBtn.style.display = (rider.id === "ali_raza_data" || rider.id === "ali_raza_owner_data") ? "none" : "flex";
+      }
 
       openModal("modalAdminInspect");
     }
@@ -10637,6 +10646,40 @@ function applyCustomOrderCycle() {
         } catch(e) {
           console.error("Wipe catch:", e);
           showToast("❌ Error resetting rider: " + e.message);
+        }
+      });
+    }
+
+    async function adminDeleteRiderFromCloud() {
+      if (!isSuperAdmin()) return;
+      if (!currentInspectedRiderId) return;
+      const rider = (lastInspectedRows || []).find(r => r.id === currentInspectedRiderId);
+      if (!rider) return;
+      const rEmail = rider.data?.userEmail || rider.id;
+      if (currentInspectedRiderId === "ali_raza_data" || currentInspectedRiderId === "ali_raza_owner_data") {
+        showToast("⚠️ Primary Super Admin owner row cannot be deleted.");
+        return;
+      }
+
+      showConfirmModal("Delete Rider from Cloud?", `Permanently delete ${escapeHtml(rEmail)} from the cloud database? This will completely remove them from the Riders Directory.`, async () => {
+        try {
+          if (!sbClient) initSupabaseClient();
+          const { error } = await sbClient
+            .from(SUPABASE_TABLE)
+            .delete()
+            .eq('id', currentInspectedRiderId);
+
+          if (error) {
+            console.error("Admin delete rider error:", error);
+            showToast("❌ Delete error: " + (error.message || "Failed"));
+          } else {
+            closeModal("modalAdminInspect");
+            showToast("✅ Rider record permanently deleted from Cloud database!");
+            await refreshAdminRidersList();
+          }
+        } catch(e) {
+          console.error("Delete catch:", e);
+          showToast("❌ Error: " + e.message);
         }
       });
     }
