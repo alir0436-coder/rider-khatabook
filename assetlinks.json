@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.vercel.rider_khatabook.twa",
+        "sha256_cert_fingerprints": ["DA:14:69:3D:8C:3C:26:B0:3F:91:80:8A:4C:84:DA:83:CA:58:40:7C:EF:25:D3:EC:ED:40:77:65:14:C9:33:9B"]
+      }
+    }]
