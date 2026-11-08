@@ -3270,9 +3270,11 @@ grant all on public."RiderKhatabook" to anon, authenticated, service_role;
 -- 3. Row Level Security policies
 alter table public."RiderKhatabook" enable row level security;
 
+-- Strict User Data Isolation (Each rider only reads and writes their own record)
 drop policy if exists "Allow public all" on public."RiderKhatabook";
-create policy "Allow public all" on public."RiderKhatabook"
-  for all using (true) with check (true);</pre>
+drop policy if exists "Riders can only access own data" on public."RiderKhatabook";
+create policy "Riders can only access own data" on public."RiderKhatabook"
+  for all using (auth.uid()::text = id) with check (auth.uid()::text = id);</pre>
         </div>
 
         <button type="button" onclick="closeModal('modalSupabaseConfig')" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg transition">
@@ -3684,7 +3686,10 @@ create policy "Allow public all" on public."RiderKhatabook"
           <div class="flex justify-between"><span class="text-slate-500">Loan Repaid So Far:</span><b id="inspectModalRepaid" class="font-mono text-emerald-700">0.00 AED</b></div>
           <div class="flex justify-between"><span class="text-slate-500">Last Active Cloud Sync:</span><span id="inspectModalUpdated" class="text-slate-700 font-mono text-[10px]">Just now</span></div>
         </div>
-        <button type="button" onclick="closeModal('modalAdminInspect')" class="w-full py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs transition">
+        <button type="button" id="adminWipeRiderBtn" onclick="adminWipeRiderData()" class="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs transition shadow-sm flex items-center justify-center space-x-1.5">
+          <span>🗑️ Reset This Rider to 0 (Wipe Khata)</span>
+        </button>
+        <button type="button" onclick="closeModal('modalAdminInspect')" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition">
           Close Inspection
         </button>
       </div>
@@ -4109,28 +4114,7 @@ create policy "Allow public all" on public."RiderKhatabook"
     var chartMode = 'earnings';
 
 
-    function openSetOpeningBalanceModal() {
-      const inp = document.getElementById("inputOpeningBalanceVal");
-      if (inp) {
-        inp.value = (parseFloat(appState.openingBalance) || 0).toFixed(2);
-      }
-      openModal("modalSetOpeningBalance");
-    }
 
-    async function saveOpeningBalanceModal() {
-      const inp = document.getElementById("inputOpeningBalanceVal");
-      const val = parseFloat(inp?.value);
-      if (isNaN(val) || val < 0) {
-        showToast("Please enter a valid opening balance (e.g. 0 or 500)", false);
-        return;
-      }
-      appState.openingBalance = val;
-      saveToStorage(true, true);
-      renderAll();
-      closeModal("modalSetOpeningBalance");
-      showToast(`✅ Opening Cash updated: ${val.toFixed(2)} ${getActiveCurrency()}`);
-      await pushToCloud();
-    }
 
     // =========================================================================
     // SUPABASE CLOUD LIVE CONNECTION & CONFIG
@@ -4351,31 +4335,23 @@ create policy "Allow public all" on public."RiderKhatabook"
                     const mergedDelTx = Array.from(new Set([...localDelTx, ...remoteDelTx, ...(appState.deletedTxIds || [])]));
                     remoteBook.deletedTxIds = mergedDelTx;
                     const delTxSet = new Set(mergedDelTx);
-                    if (Array.isArray(remoteBook.transactions)) {
-                      remoteBook.transactions = remoteBook.transactions.filter(t => !delTxSet.has(t.id));
-                    } else {
-                      remoteBook.transactions = [];
-                    }
+
+                    // Non-destructive 2-way merge: Preserve un-synced local transactions created offline
+                    const rTxList = Array.isArray(remoteBook.transactions) ? remoteBook.transactions : [];
+                    const rTxIdSet = new Set(rTxList.map(t => String(t.id)));
+                    const lTxList = Array.isArray(localBook?.transactions) ? localBook.transactions : [];
+                    lTxList.forEach(lt => {
+                      if (lt && lt.id && !delTxSet.has(String(lt.id)) && !rTxIdSet.has(String(lt.id))) {
+                        rTxList.push(lt);
+                        rTxIdSet.add(String(lt.id));
+                        missingCloudEntries = true;
+                      }
+                    });
+
+                    remoteBook.transactions = rTxList.filter(t => !delTxSet.has(String(t.id)));
 
                     const isPrimaryKhata = (!kId || kId === "default");
-                    if (isAli && isPrimaryKhata) {
-                      // Guarantee all 17 Company Loan and 36 Room Rent report entries are present in remoteBook ONLY for Super Admin Ali Raza's primary khata
-                      const rTxMap = new Map(remoteBook.transactions.map(t => [String(t.id), t]));
-                      COMPANY_LOAN_REPORT_ENTRIES.forEach(entry => {
-                        if (!delTxSet.has(String(entry.id)) && !rTxMap.has(String(entry.id))) {
-                          remoteBook.transactions.push(JSON.parse(JSON.stringify(entry)));
-                          rTxMap.set(String(entry.id), entry);
-                          missingCloudEntries = true;
-                        }
-                      });
-                      ROOM_RENT_REPORT_ENTRIES.forEach(entry => {
-                        if (!delTxSet.has(String(entry.id)) && !rTxMap.has(String(entry.id))) {
-                          remoteBook.transactions.push(JSON.parse(JSON.stringify(entry)));
-                          rTxMap.set(String(entry.id), entry);
-                          missingCloudEntries = true;
-                        }
-                      });
-                    } else {
+                    if (!isAli) {
                       // Strict isolation: rider accounts or secondary Khatas must NEVER contain Ali's report entries or leaked data!
                       const leakedIds = new Set([
                         "tx_1793780252738", "tx_1793780201900", "tx_rr_1793780179413",
@@ -4390,11 +4366,7 @@ create policy "Allow public all" on public."RiderKhatabook"
                       const origLen = Array.isArray(remoteBook.transactions) ? remoteBook.transactions.length : 0;
                       if (Array.isArray(remoteBook.transactions)) {
                         remoteBook.transactions = remoteBook.transactions.filter(t => 
-                          !leakedIds.has(String(t.id)) &&
-                          !t.isCompanyLoan &&
-                          !t.isCompanyVisaLoan &&
-                          !t.isAutoRentCharge &&
-                          !/Food with paroya|Samosa tea|Enoc|Milk and bnana|Gril khai|Tamara instalment|Fountain Head|Company Loan|Room Rent/i.test(t.description || t.note || t.person || t.accountName || "")
+                          !leakedIds.has(String(t.id))
                         );
                       } else {
                         remoteBook.transactions = [];
@@ -5260,1000 +5232,10 @@ create policy "Allow public all" on public."RiderKhatabook"
 
 
     // Official Room Rent Entries from CreditBook Report (06 Nov 23 - 07 Nov 26)
-    const ROOM_RENT_REPORT_ENTRIES = [
-  {
-    "id": "tx_rr_01",
-    "date": "2025-10-15",
-    "time": "12:00 PM",
-    "month": "October 2025",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "Augest rent",
-    "cash_in": 500.0,
-    "cash_out": 0.0,
-    "principal_amount": 500.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentCharge": true
-  },
-  {
-    "id": "tx_rr_02",
-    "date": "2025-10-15",
-    "time": "12:01 PM",
-    "month": "October 2025",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "Augest rent paid to zahid virk",
-    "cash_in": 0.0,
-    "cash_out": 500.0,
-    "principal_amount": 500.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentPayment": true
-  },
-  {
-    "id": "tx_rr_03",
-    "date": "2025-10-15",
-    "time": "12:02 PM",
-    "month": "October 2025",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "September rent",
-    "cash_in": 500.0,
-    "cash_out": 0.0,
-    "principal_amount": 500.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentCharge": true
-  },
-  {
-    "id": "tx_rr_04",
-    "date": "2025-10-15",
-    "time": "12:03 PM",
-    "month": "October 2025",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "For labour food",
-    "cash_in": 0.0,
-    "cash_out": 120.0,
-    "principal_amount": 120.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentPayment": true
-  },
-  {
-    "id": "tx_rr_05",
-    "date": "2025-10-17",
-    "time": "12:00 PM",
-    "month": "October 2025",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "Adnoc food",
-    "cash_in": 0.0,
-    "cash_out": 270.0,
-    "principal_amount": 270.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentPayment": true
-  },
-  {
-    "id": "tx_rr_06",
-    "date": "2025-10-21",
-    "time": "12:00 PM",
-    "month": "October 2025",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "D3 food",
-    "cash_in": 0.0,
-    "cash_out": 72.0,
-    "principal_amount": 72.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentPayment": true
-  },
-  {
-    "id": "tx_rr_07",
-    "date": "2025-11-11",
-    "time": "12:00 PM",
-    "month": "November 2025",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "October rent",
-    "cash_in": 500.0,
-    "cash_out": 0.0,
-    "principal_amount": 500.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentCharge": true
-  },
-  {
-    "id": "tx_rr_08",
-    "date": "2025-12-16",
-    "time": "12:00 PM",
-    "month": "December 2025",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "Room rent novrmber",
-    "cash_in": 500.0,
-    "cash_out": 0.0,
-    "principal_amount": 500.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentCharge": true
-  },
-  {
-    "id": "tx_rr_09",
-    "date": "2026-01-04",
-    "time": "12:00 PM",
-    "month": "January 2026",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "Room tent December",
-    "cash_in": 500.0,
-    "cash_out": 0.0,
-    "principal_amount": 500.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentCharge": true
-  },
-  {
-    "id": "tx_rr_10",
-    "date": "2026-01-20",
-    "time": "12:00 PM",
-    "month": "January 2026",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "Khana abu dhabi",
-    "cash_in": 0.0,
-    "cash_out": 175.0,
-    "principal_amount": 175.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentPayment": true
-  },
-  {
-    "id": "tx_rr_11",
-    "date": "2026-02-07",
-    "time": "12:00 PM",
-    "month": "February 2026",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "Rent january",
-    "cash_in": 500.0,
-    "cash_out": 0.0,
-    "principal_amount": 500.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentCharge": true
-  },
-  {
-    "id": "tx_rr_12",
-    "date": "2026-02-16",
-    "time": "12:00 PM",
-    "month": "February 2026",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "Room rent",
-    "cash_in": 0.0,
-    "cash_out": 500.0,
-    "principal_amount": 500.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentPayment": true
-  },
-  {
-    "id": "tx_rr_13",
-    "date": "2026-03-16",
-    "time": "12:00 PM",
-    "month": "March 2026",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "Fabrary rent",
-    "cash_in": 500.0,
-    "cash_out": 0.0,
-    "principal_amount": 500.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentCharge": true
-  },
-  {
-    "id": "tx_rr_14",
-    "date": "2026-03-23",
-    "time": "12:00 PM",
-    "month": "March 2026",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "Room rent",
-    "cash_in": 0.0,
-    "cash_out": 400.0,
-    "principal_amount": 400.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentPayment": true
-  },
-  {
-    "id": "tx_rr_15",
-    "date": "2026-04-17",
-    "time": "12:00 PM",
-    "month": "April 2026",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "March rent",
-    "cash_in": 500.0,
-    "cash_out": 0.0,
-    "principal_amount": 500.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentCharge": true
-  },
-  {
-    "id": "tx_rr_16",
-    "date": "2026-05-04",
-    "time": "12:00 PM",
-    "month": "May 2026",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "Room rent april",
-    "cash_in": 500.0,
-    "cash_out": 0.0,
-    "principal_amount": 500.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentCharge": true
-  },
-  {
-    "id": "tx_rr_17",
-    "date": "2026-05-17",
-    "time": "12:00 PM",
-    "month": "May 2026",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "Room rent for may",
-    "cash_in": 500.0,
-    "cash_out": 0.0,
-    "principal_amount": 500.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentCharge": true
-  },
-  {
-    "id": "tx_rr_18",
-    "date": "2026-05-17",
-    "time": "12:01 PM",
-    "month": "May 2026",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "Room rent",
-    "cash_in": 0.0,
-    "cash_out": 400.0,
-    "principal_amount": 400.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentPayment": true
-  },
-  {
-    "id": "tx_rr_19",
-    "date": "2026-06-11",
-    "time": "12:00 PM",
-    "month": "June 2026",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "Suhail ko diye virk k khny pr",
-    "cash_in": 0.0,
-    "cash_out": 50.0,
-    "principal_amount": 50.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentPayment": true
-  },
-  {
-    "id": "tx_rr_20",
-    "date": "2026-06-11",
-    "time": "12:01 PM",
-    "month": "June 2026",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "June ka rent",
-    "cash_in": 500.0,
-    "cash_out": 0.0,
-    "principal_amount": 500.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentCharge": true
-  },
-  {
-    "id": "tx_rr_21",
-    "date": "2026-07-14",
-    "time": "12:00 PM",
-    "month": "July 2026",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "July",
-    "cash_in": 500.0,
-    "cash_out": 0.0,
-    "principal_amount": 500.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentCharge": true
-  },
-  {
-    "id": "tx_rr_22",
-    "date": "2026-08-02",
-    "time": "12:00 PM",
-    "month": "August 2026",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "August rent",
-    "cash_in": 500.0,
-    "cash_out": 0.0,
-    "principal_amount": 500.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentCharge": true
-  },
-  {
-    "id": "tx_rr_23",
-    "date": "2026-08-04",
-    "time": "12:00 PM",
-    "month": "August 2026",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "Rent payment - 04 Aug 26",
-    "cash_in": 0.0,
-    "cash_out": 400.0,
-    "principal_amount": 400.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentPayment": true
-  },
-  {
-    "id": "tx_rr_24",
-    "date": "2026-09-06",
-    "time": "12:00 PM",
-    "month": "September 2026",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "September rent",
-    "cash_in": 500.0,
-    "cash_out": 0.0,
-    "principal_amount": 500.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentCharge": true
-  },
-  {
-    "id": "tx_rr_25",
-    "date": "2026-09-11",
-    "time": "12:00 PM",
-    "month": "September 2026",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "Cash",
-    "cash_in": 0.0,
-    "cash_out": 25.0,
-    "principal_amount": 25.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentPayment": true
-  },
-  {
-    "id": "tx_rr_26",
-    "date": "2026-09-11",
-    "time": "12:01 PM",
-    "month": "September 2026",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "Cash dya",
-    "cash_in": 0.0,
-    "cash_out": 100.0,
-    "principal_amount": 100.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentPayment": true
-  },
-  {
-    "id": "tx_rr_27",
-    "date": "2026-09-11",
-    "time": "12:02 PM",
-    "month": "September 2026",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "Chawalo me daly",
-    "cash_in": 0.0,
-    "cash_out": 15.0,
-    "principal_amount": 15.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentPayment": true
-  },
-  {
-    "id": "tx_rr_28",
-    "date": "2026-09-12",
-    "time": "12:00 PM",
-    "month": "September 2026",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "Adnoc food",
-    "cash_in": 0.0,
-    "cash_out": 99.0,
-    "principal_amount": 99.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentPayment": true
-  },
-  {
-    "id": "tx_rr_29",
-    "date": "2026-09-14",
-    "time": "12:00 PM",
-    "month": "September 2026",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "Botim ch ny transfer krwaya",
-    "cash_in": 0.0,
-    "cash_out": 250.0,
-    "principal_amount": 250.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentPayment": true
-  },
-  {
-    "id": "tx_rr_30",
-    "date": "2026-09-14",
-    "time": "12:01 PM",
-    "month": "September 2026",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "Fuda sy ly kr shahid ko diye virk ny dilwaye march me",
-    "cash_in": 0.0,
-    "cash_out": 500.0,
-    "principal_amount": 500.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentPayment": true
-  },
-  {
-    "id": "tx_rr_31",
-    "date": "2026-09-25",
-    "time": "12:00 PM",
-    "month": "September 2026",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "Shahid",
-    "cash_in": 0.0,
-    "cash_out": 500.0,
-    "principal_amount": 500.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentPayment": true
-  },
-  {
-    "id": "tx_rr_32",
-    "date": "2026-10-05",
-    "time": "12:00 PM",
-    "month": "October 2026",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "Adnoc food",
-    "cash_in": 0.0,
-    "cash_out": 162.0,
-    "principal_amount": 162.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentPayment": true
-  },
-  {
-    "id": "tx_rr_33",
-    "date": "2026-10-08",
-    "time": "12:00 PM",
-    "month": "October 2026",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "Rent payment - 08 Oct 26",
-    "cash_in": 0.0,
-    "cash_out": 113.0,
-    "principal_amount": 113.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentPayment": true
-  },
-  {
-    "id": "tx_rr_34",
-    "date": "2026-10-09",
-    "time": "12:00 PM",
-    "month": "October 2026",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "Rent payment - 09 Oct 26 (1)",
-    "cash_in": 0.0,
-    "cash_out": 213.0,
-    "principal_amount": 213.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentPayment": true
-  },
-  {
-    "id": "tx_rr_35",
-    "date": "2026-10-09",
-    "time": "12:01 PM",
-    "month": "October 2026",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "Rent payment - 09 Oct 26 (2)",
-    "cash_in": 0.0,
-    "cash_out": 13.0,
-    "principal_amount": 13.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentPayment": true
-  },
-  {
-    "id": "tx_rr_36",
-    "date": "2026-10-10",
-    "time": "12:00 PM",
-    "month": "October 2026",
-    "category": "Loan",
-    "person": "Room Rent",
-    "detail": "Km aye",
-    "cash_in": 0.0,
-    "cash_out": 13.0,
-    "principal_amount": 13.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isRoomRent": true,
-    "isRentPayment": true
-  }
-];
+    const ROOM_RENT_REPORT_ENTRIES = [];
 
     // Official Fountain Head License / Company Loan Entries from CreditBook Report
-    const COMPANY_LOAN_REPORT_ENTRIES = [
-  {
-    "id": "tx_cl_01",
-    "date": "2025-08-23",
-    "time": "12:00 PM",
-    "month": "August 2025",
-    "category": "Loan",
-    "person": "Company Loan",
-    "detail": "Visa licens pkg",
-    "cash_in": 10000.0,
-    "cash_out": 0.0,
-    "principal_amount": 10000.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isCompanyLoan": true,
-    "isCompanyVisaLoan": true,
-    "isLoanPrincipal": true,
-    "isLoanDeduction": false
-  },
-  {
-    "id": "tx_cl_02",
-    "date": "2025-08-23",
-    "time": "12:01 PM",
-    "month": "August 2025",
-    "category": "Loan",
-    "person": "Company Loan",
-    "detail": "May 25",
-    "cash_in": 0.0,
-    "cash_out": 500.0,
-    "principal_amount": 500.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isCompanyLoan": true,
-    "isCompanyVisaLoan": true,
-    "isLoanPrincipal": false,
-    "isLoanDeduction": true
-  },
-  {
-    "id": "tx_cl_03",
-    "date": "2025-08-23",
-    "time": "12:02 PM",
-    "month": "August 2025",
-    "category": "Loan",
-    "person": "Company Loan",
-    "detail": "Jun 25",
-    "cash_in": 0.0,
-    "cash_out": 300.0,
-    "principal_amount": 300.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isCompanyLoan": true,
-    "isCompanyVisaLoan": true,
-    "isLoanPrincipal": false,
-    "isLoanDeduction": true
-  },
-  {
-    "id": "tx_cl_04",
-    "date": "2025-08-23",
-    "time": "12:03 PM",
-    "month": "August 2025",
-    "category": "Loan",
-    "person": "Company Loan",
-    "detail": "July 25 ye 500 kam kr k 300 krwyq tha loan",
-    "cash_in": 0.0,
-    "cash_out": 300.0,
-    "principal_amount": 300.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isCompanyLoan": true,
-    "isCompanyVisaLoan": true,
-    "isLoanPrincipal": false,
-    "isLoanDeduction": true
-  },
-  {
-    "id": "tx_cl_05",
-    "date": "2025-08-23",
-    "time": "12:04 PM",
-    "month": "August 2025",
-    "category": "Loan",
-    "person": "Company Loan",
-    "detail": "Advance",
-    "cash_in": 0.0,
-    "cash_out": 1000.0,
-    "principal_amount": 1000.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isCompanyLoan": true,
-    "isCompanyVisaLoan": true,
-    "isLoanPrincipal": false,
-    "isLoanDeduction": true
-  },
-  {
-    "id": "tx_cl_06",
-    "date": "2025-09-14",
-    "time": "12:00 PM",
-    "month": "September 2025",
-    "category": "Loan",
-    "person": "Company Loan",
-    "detail": "Agust",
-    "cash_in": 0.0,
-    "cash_out": 400.0,
-    "principal_amount": 400.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isCompanyLoan": true,
-    "isCompanyVisaLoan": true,
-    "isLoanPrincipal": false,
-    "isLoanDeduction": true
-  },
-  {
-    "id": "tx_cl_07",
-    "date": "2025-11-16",
-    "time": "12:00 PM",
-    "month": "November 2025",
-    "category": "Loan",
-    "person": "Company Loan",
-    "detail": "Salary",
-    "cash_in": 0.0,
-    "cash_out": 0.0,
-    "principal_amount": 0.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isCompanyLoan": true,
-    "isCompanyVisaLoan": true,
-    "isLoanPrincipal": false,
-    "isLoanDeduction": true
-  },
-  {
-    "id": "tx_cl_08",
-    "date": "2025-12-16",
-    "time": "12:00 PM",
-    "month": "December 2025",
-    "category": "Loan",
-    "person": "Company Loan",
-    "detail": "Loan adjustment",
-    "cash_in": 2516.0,
-    "cash_out": 0.0,
-    "principal_amount": 2516.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isCompanyLoan": true,
-    "isCompanyVisaLoan": true,
-    "isLoanPrincipal": true,
-    "isLoanDeduction": false
-  },
-  {
-    "id": "tx_cl_09",
-    "date": "2025-12-18",
-    "time": "12:00 PM",
-    "month": "December 2025",
-    "category": "Loan",
-    "person": "Company Loan",
-    "detail": "867 cut hwy",
-    "cash_in": 0.0,
-    "cash_out": 700.0,
-    "principal_amount": 700.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isCompanyLoan": true,
-    "isCompanyVisaLoan": true,
-    "isLoanPrincipal": false,
-    "isLoanDeduction": true
-  },
-  {
-    "id": "tx_cl_10",
-    "date": "2026-01-14",
-    "time": "12:00 PM",
-    "month": "January 2026",
-    "category": "Loan",
-    "person": "Company Loan",
-    "detail": "Loan deduction - 14 Jan 26",
-    "cash_in": 0.0,
-    "cash_out": 500.0,
-    "principal_amount": 500.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isCompanyLoan": true,
-    "isCompanyVisaLoan": true,
-    "isLoanPrincipal": false,
-    "isLoanDeduction": true
-  },
-  {
-    "id": "tx_cl_11",
-    "date": "2026-02-15",
-    "time": "12:00 PM",
-    "month": "February 2026",
-    "category": "Loan",
-    "person": "Company Loan",
-    "detail": "Gy",
-    "cash_in": 0.0,
-    "cash_out": 1.0,
-    "principal_amount": 1.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isCompanyLoan": true,
-    "isCompanyVisaLoan": true,
-    "isLoanPrincipal": false,
-    "isLoanDeduction": true
-  },
-  {
-    "id": "tx_cl_12",
-    "date": "2026-03-16",
-    "time": "12:00 PM",
-    "month": "March 2026",
-    "category": "Loan",
-    "person": "Company Loan",
-    "detail": "March salry",
-    "cash_in": 0.0,
-    "cash_out": 100.0,
-    "principal_amount": 100.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isCompanyLoan": true,
-    "isCompanyVisaLoan": true,
-    "isLoanPrincipal": false,
-    "isLoanDeduction": true
-  },
-  {
-    "id": "tx_cl_13",
-    "date": "2026-04-14",
-    "time": "12:00 PM",
-    "month": "April 2026",
-    "category": "Loan",
-    "person": "Company Loan",
-    "detail": "Loan deduction - 14 Apr 26",
-    "cash_in": 0.0,
-    "cash_out": 300.0,
-    "principal_amount": 300.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isCompanyLoan": true,
-    "isCompanyVisaLoan": true,
-    "isLoanPrincipal": false,
-    "isLoanDeduction": true
-  },
-  {
-    "id": "tx_cl_14",
-    "date": "2026-06-29",
-    "time": "12:00 PM",
-    "month": "June 2026",
-    "category": "Loan",
-    "person": "Company Loan",
-    "detail": ".k",
-    "cash_in": 0.0,
-    "cash_out": 1.0,
-    "principal_amount": 1.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isCompanyLoan": true,
-    "isCompanyVisaLoan": true,
-    "isLoanPrincipal": false,
-    "isLoanDeduction": true
-  },
-  {
-    "id": "tx_cl_15",
-    "date": "2026-07-06",
-    "time": "12:00 PM",
-    "month": "July 2026",
-    "category": "Loan",
-    "person": "Company Loan",
-    "detail": "Loan deduction - 06 Jul 26",
-    "cash_in": 0.0,
-    "cash_out": 1.0,
-    "principal_amount": 1.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isCompanyLoan": true,
-    "isCompanyVisaLoan": true,
-    "isLoanPrincipal": false,
-    "isLoanDeduction": true
-  },
-  {
-    "id": "tx_cl_16",
-    "date": "2026-08-02",
-    "time": "12:00 PM",
-    "month": "August 2026",
-    "category": "Loan",
-    "person": "Company Loan",
-    "detail": "Loan deduction - 02 Aug 26",
-    "cash_in": 0.0,
-    "cash_out": 1.0,
-    "principal_amount": 1.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isCompanyLoan": true,
-    "isCompanyVisaLoan": true,
-    "isLoanPrincipal": false,
-    "isLoanDeduction": true
-  },
-  {
-    "id": "tx_cl_17",
-    "date": "2026-09-30",
-    "time": "12:00 PM",
-    "month": "September 2026",
-    "category": "Loan",
-    "person": "Company Loan",
-    "detail": "Loan deduction - 30 Sep 26",
-    "cash_in": 0.0,
-    "cash_out": 200.0,
-    "principal_amount": 200.0,
-    "interest_amount": 0.0,
-    "isReal": false,
-    "isNonReal": true,
-    "currency": "AED",
-    "isCompanyLoan": true,
-    "isCompanyVisaLoan": true,
-    "isLoanPrincipal": false,
-    "isLoanDeduction": true
-  }
-];
+    const COMPANY_LOAN_REPORT_ENTRIES = [];
 
     // Application State
     var appState = {
@@ -6558,10 +5540,7 @@ create policy "Allow public all" on public."RiderKhatabook"
       });
     }
 
-    function loadFromStorage() {
-      // Delegate directly to loadKhataFromStorage for strict isolated multi-Khata loading
-      loadKhataFromStorage();
-    }
+
 
     function saveToStorage(notify = true, syncCloud = true) {
       try {
@@ -6696,11 +5675,7 @@ create policy "Allow public all" on public."RiderKhatabook"
       }
     }
 
-    function onOrderSheetCycleFilterChange(val) {
-      appState.activeOrderCycle = val;
-      renderOrders();
-      saveToStorage(false);
-    }
+
 
     function onActiveMonthFilterChange(val) {
       appState.activeMonth = val;
@@ -8614,7 +7589,12 @@ function applyCustomOrderCycle() {
         showToast('PDF report downloaded successfully.');
       } catch (e) {
         console.error('PDF export failed:', e);
-        showToast('PDF export error. Try again.', false);
+        if (!navigator.onLine || /failed to load|download failed|network/i.test(e.message || '')) {
+          showToast('Offline: Opening native browser print dialog...');
+          window.print();
+        } else {
+          showToast('PDF export error. Try again.', false);
+        }
       } finally {
         if (stage && stage.parentNode) stage.parentNode.removeChild(stage);
       }
@@ -9201,18 +8181,20 @@ function applyCustomOrderCycle() {
           }
           if (!displayAccount) displayAccount = 'Other';
 
+          const isNonCash = (t.isReal === false || t.isNonReal === true || t.isAutoRentCharge);
           tr.innerHTML = `
             <td class="py-2 px-1.5 sm:px-3 font-semibold text-slate-800 whitespace-nowrap text-[11px]">${escapeHtml(t.date)}</td>
             <td class="py-2 px-1 sm:px-3 whitespace-nowrap">
               <span class="badge-fit px-1.5 py-0.5 rounded-full text-[9px] font-bold ${cin > 0 ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-rose-100 text-rose-800 border border-rose-200'} inline-block">
                 ${escapeHtml(displayAccount)}
               </span>
+              ${isNonCash ? '<span class="ml-1 text-[8px] font-extrabold px-1 py-0.2 rounded bg-amber-100 text-amber-800 border border-amber-300">Non-Cash</span>' : ''}
             </td>
-            <td class="py-2 px-1.5 sm:px-3 text-slate-800 desc-fit font-medium text-[11px]" title="Tap to view full description" onclick="toggleDescExpand(this)" title="Tap to view full description" onclick="toggleDescExpand(this)">
+            <td class="py-2 px-1.5 sm:px-3 text-slate-800 desc-fit font-medium text-[11px]" title="Tap to view full description" onclick="toggleDescExpand(this)">
               ${escapeHtml(t.detail || '-')}
             </td>
-            <td class="py-2 px-1.5 sm:px-3 text-right font-mono font-bold whitespace-nowrap text-[11px] ${t.isAutoRentCharge ? 'text-amber-800' : 'text-emerald-700'}">${cin > 0 ? (t.isAutoRentCharge ? `${cin.toFixed(2)}` : '+' + cin.toFixed(2)) : '—'}</td>
-            <td class="py-2 px-1.5 sm:px-3 text-right font-mono font-bold text-rose-600 whitespace-nowrap text-[11px]">${cout > 0 ? '−' + cout.toFixed(2) : '—'}</td>
+            <td class="py-2 px-1.5 sm:px-3 text-right font-mono font-bold whitespace-nowrap text-[11px] ${isNonCash ? 'text-slate-400' : 'text-emerald-700'}">${!isNonCash && cin > 0 ? '+' + cin.toFixed(2) : '—'}</td>
+            <td class="py-2 px-1.5 sm:px-3 text-right font-mono font-bold whitespace-nowrap text-[11px] ${isNonCash ? 'text-slate-400' : 'text-rose-600'}">${!isNonCash && cout > 0 ? '−' + cout.toFixed(2) : '—'}</td>
             <td class="py-2 px-1 sm:px-3 text-center whitespace-nowrap text-xs">
               <button onclick="editTransaction('${escapeHtml(t.id)}')" class="text-blue-600 hover:text-blue-800 mr-1.5" title="Edit">✏️</button>
               <button onclick="deleteTransaction('${escapeHtml(t.id)}')" class="text-rose-600 hover:text-rose-800" title="Delete">🗑️</button>
@@ -9429,9 +8411,7 @@ function applyCustomOrderCycle() {
       ModalManager.requestClose(id);
     }
 
-    function forceCloseModal(id) {
-      ModalManager.forceClose(id);
-    }
+
 
 
     function syncEntryMonthFromDate(dateValue) {
@@ -9447,16 +8427,7 @@ function applyCustomOrderCycle() {
       monthSelect.value = monthTag;
     }
 
-    function openAddVisaDeductionModal() {
-      openAddModal('Loan');
-      populatePersonSelect('Company Loan');
-      document.getElementById('lenDenPersonSelect').value = 'Company Loan';
-      const inp = document.getElementById('lenDenNewPersonInput');
-      if (inp) inp.classList.add('hidden');
-      document.querySelector('input[name="lenDenType"][value="DIYE"]').checked = true;
-      document.getElementById('entryDetail').value = 'Salary visa deduction (Company deducted amount)';
-      document.getElementById('modalTitle').textContent = 'Company Loan Deduction Record';
-    }
+
 
     function openAddRentModal() {
       openAddModal('Rent');
@@ -10565,6 +9536,13 @@ function applyCustomOrderCycle() {
       reader.readAsText(file);
     }
 
+    function sanitizeCsvCell(val) {
+      const s = String(val == null ? '' : val);
+      // CWE-1236 Defense: Prepend single quote if cell starts with formula characters (=, +, -, @, tab, CR)
+      const safe = /^[=+\-@\t\r]/.test(s) ? ("'" + s) : s;
+      return `"${safe.replace(/"/g, '""')}"`;
+    }
+
     function exportCSV(exportAll = false) {
       const q = (document.getElementById("statementSearch")?.value || "").toLowerCase();
       const cat = document.getElementById("statementCategoryFilter")?.value || "ALL";
@@ -10575,14 +9553,14 @@ function applyCustomOrderCycle() {
       let csv = "TRANSACTIONS STATEMENT\n";
       csv += "Date,Time,Category,Detail,Person,Cash In (" + getActiveCurrency() + "),Cash Out (" + getActiveCurrency() + "),Month\n";
       txs.forEach(t => {
-        csv += `"${t.date || ''}","${t.time || ''}","${t.category || ''}","${(t.detail || '').replace(/"/g, '""')}","${t.person || ''}","${t.cash_in || 0}","${t.cash_out || 0}","${t.month || ''}"\n`;
+        csv += `${sanitizeCsvCell(t.date)},${sanitizeCsvCell(t.time)},${sanitizeCsvCell(t.category)},${sanitizeCsvCell(t.detail)},${sanitizeCsvCell(t.person)},${sanitizeCsvCell(t.cash_in || 0)},${sanitizeCsvCell(t.cash_out || 0)},${sanitizeCsvCell(t.month)}\n`;
       });
 
       if ((appState.orders || []).length > 0) {
         csv += "\nDAILY ORDERS & DELIVERIES\n";
         csv += "Date,Day,Deliveries Count,Rate (" + getActiveCurrency() + "),Earnings (" + getActiveCurrency() + "),Notes\n";
         (appState.orders || []).forEach(o => {
-          csv += `"${o.date || ''}","${o.day || ''}","${o.count || 0}","${o.rate || 0}","${o.earnings || 0}","${(o.notes || '').replace(/"/g, '""')}"\n`;
+          csv += `${sanitizeCsvCell(o.date)},${sanitizeCsvCell(o.day)},${sanitizeCsvCell(o.count || 0)},${sanitizeCsvCell(o.rate || 0)},${sanitizeCsvCell(o.earnings || 0)},${sanitizeCsvCell(o.notes)}\n`;
         });
       }
 
@@ -10719,23 +9697,11 @@ function applyCustomOrderCycle() {
               ]);
 
               const txs = Array.isArray(existingParsed.transactions) ? existingParsed.transactions : [];
-              const containsAliData = txs.some(t => 
-                aliTxIds.has(String(t.id)) || 
-                t.isCompanyLoan || 
-                t.isCompanyVisaLoan || 
-                t.isAutoRentCharge ||
-                /Food with paroya|Samosa tea|Enoc|Milk and bnana|Gril khai|Tamara instalment|Fountain Head|Company Loan|Room Rent/i.test(t.description || t.note || t.person || t.accountName || "")
-              );
+              const containsAliData = txs.some(t => aliTxIds.has(String(t.id)));
 
               if (needsPurge || containsAliData) {
                 console.warn("Purging leaked Ali Raza data from regular rider storage:", currentUser.email);
-                existingParsed.transactions = txs.filter(t => 
-                  !aliTxIds.has(String(t.id)) && 
-                  !t.isCompanyLoan && 
-                  !t.isCompanyVisaLoan && 
-                  !t.isAutoRentCharge &&
-                  !/Food with paroya|Samosa tea|Enoc|Milk and bnana|Gril khai|Tamara instalment|Fountain Head|Company Loan|Room Rent/i.test(t.description || t.note || t.person || t.accountName || "")
-                );
+                existingParsed.transactions = txs.filter(t => !aliTxIds.has(String(t.id)));
                 if (existingParsed.transactions.length === 0) {
                   existingParsed.orders = [];
                   existingParsed.roomRentRecords = [];
@@ -10773,22 +9739,7 @@ function applyCustomOrderCycle() {
 
     
 
-    // Owner Direct Login Helper
-    function continueAsOwner() {
-      const ownerObj = {
-        id: "ali_raza_data",
-        email: "alir0436@gmail.com",
-        isGuest: false,
-        user_metadata: { name: "Ali Raza", company: "Owner", role: "admin" }
-      };
-      const aliKey = "rider_khatabook_ali_owner_v6";
-      const raw = safeGetItem(aliKey);
-      let count = 0;
-      if (raw) { try { count = (JSON.parse(raw)?.transactions || []).length; } catch(e) {} }
 
-      applyAuthState(ownerObj);
-      showToast("👑 Welcome back, Ali Raza (Super Admin)!");
-    }
 
 
 
@@ -11042,21 +9993,7 @@ function applyCustomOrderCycle() {
       }
     }
 
-    function showForgotPasswordAlert() {
-      setGateAuthMode("forgot");
-    }
-    function old_showForgotPasswordAlert_unused() {
-      const currentEmail = document.getElementById("gateInputEmail")?.value || "";
-      const forgotEmailInput = document.getElementById("forgotInputEmail");
-      if (forgotEmailInput && currentEmail) {
-        forgotEmailInput.value = currentEmail.trim();
-      }
-      const err = document.getElementById("forgotErrorMsg");
-      const succ = document.getElementById("forgotSuccessMsg");
-      if (err) err.classList.add("hidden");
-      if (succ) succ.classList.add("hidden");
-      openModal("modalForgotPassword");
-    }
+
 
     async function handleSendPasswordReset(e) {
       if (e) e.preventDefault();
@@ -11577,7 +10514,10 @@ function applyCustomOrderCycle() {
       renderAdminTableRows();
     }
 
+    let currentInspectedRiderId = null;
+
     function inspectRiderDetails(riderId) {
+      currentInspectedRiderId = riderId;
       const rider = lastInspectedRows.find(r => r.id === riderId) || { id: riderId, data: appState };
       const rData = rider.data || {};
       const isSuper = (rider.id === "ali_raza_data" || (rData.userEmail && rData.userEmail.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase()));
@@ -11640,7 +10580,63 @@ function applyCustomOrderCycle() {
         updatedEl.textContent = rider.updated_at ? new Date(rider.updated_at).toLocaleString() : "Recently active";
       }
 
+      const wipeBtn = document.getElementById("adminWipeRiderBtn");
+      if (wipeBtn) {
+        wipeBtn.style.display = isSuper ? "none" : "flex";
+      }
+
       openModal("modalAdminInspect");
+    }
+
+    async function adminWipeRiderData() {
+      if (!isSuperAdmin()) return;
+      if (!currentInspectedRiderId) return;
+      const rider = (lastInspectedRows || []).find(r => r.id === currentInspectedRiderId);
+      if (!rider) return;
+      const rEmail = rider.data?.userEmail || rider.id;
+      if (isSuperAdminEmail(rEmail) || currentInspectedRiderId === "ali_raza_data") {
+        showToast("⚠️ Super Admin owner data cannot be wiped.");
+        return;
+      }
+
+      showConfirmModal("Reset Rider Khata to 0?", `Are you sure you want to permanently reset all transactions, orders, and loans for ${escapeHtml(rEmail)} to 0 in Cloud?`, async () => {
+        try {
+          if (!sbClient) initSupabaseClient();
+          const cleanPayload = {
+            version: "14.1",
+            schema: "multi_khata_bundle_v1",
+            userId: rider.id,
+            userEmail: rEmail,
+            riderName: rider.data?.riderName || "Rider",
+            activeKhataId: "default",
+            userKhatas: [{ id: "default", name: "Primary Khata (Main)", isDefault: true }],
+            transactions: [],
+            orders: [],
+            persons: {},
+            roomRentRecords: [],
+            fixed_rate: 7.80,
+            agreedMonthlyRent: 0,
+            savedAt: new Date().toISOString()
+          };
+
+          const { error } = await sbClient
+            .from(SUPABASE_TABLE)
+            .update({ data: cleanPayload, updated_at: new Date().toISOString() })
+            .eq('id', currentInspectedRiderId);
+
+          if (error) {
+            console.error("Admin wipe error:", error);
+            showToast("❌ Error resetting rider: " + (error.message || "Failed"));
+          } else {
+            closeModal("modalAdminInspect");
+            showToast("✅ Rider khata has been reset to 0 in Cloud!");
+            await refreshAdminRidersList();
+          }
+        } catch(e) {
+          console.error("Wipe catch:", e);
+          showToast("❌ Error resetting rider: " + e.message);
+        }
+      });
     }
 
     // 15. MULTI-KHATA BOOK SYSTEM (Strict Data Isolation & Cloud Sync)
@@ -12041,24 +11037,7 @@ function applyCustomOrderCycle() {
           appState.transactions = sanitizeAllAccountNames(Array.isArray(parsed.transactions) ? parsed.transactions : []).filter(t => !delTxSet.has(t.id));
           
           let modifiedStorage = false;
-          if (isAli && isPrimary) {
-            // Seed official Company Loan & Room Rent CreditBook report entries strictly for Super Admin Ali Raza's Primary Khata
-            const existingTxMap = new Map(appState.transactions.map(t => [String(t.id), t]));
-            COMPANY_LOAN_REPORT_ENTRIES.forEach(entry => {
-              if (!delTxSet.has(String(entry.id)) && !existingTxMap.has(String(entry.id))) {
-                appState.transactions.push(JSON.parse(JSON.stringify(entry)));
-                existingTxMap.set(String(entry.id), entry);
-                modifiedStorage = true;
-              }
-            });
-            ROOM_RENT_REPORT_ENTRIES.forEach(entry => {
-              if (!delTxSet.has(String(entry.id)) && !existingTxMap.has(String(entry.id))) {
-                appState.transactions.push(JSON.parse(JSON.stringify(entry)));
-                existingTxMap.set(String(entry.id), entry);
-                modifiedStorage = true;
-              }
-            });
-          } else {
+          if (!isAli) {
             // Strict isolation: rider accounts or secondary Khatas must NEVER contain Ali's historical report entries or leaked data!
             // Purge any leaked Company Loan or Room Rent entries that were previously injected
             const leakedIds = new Set([
@@ -12072,13 +11051,7 @@ function applyCustomOrderCycle() {
               ...ROOM_RENT_REPORT_ENTRIES.map(e => String(e.id))
             ]);
             const prevLen = appState.transactions.length;
-            appState.transactions = appState.transactions.filter(t => 
-              !leakedIds.has(String(t.id)) &&
-              !t.isCompanyLoan &&
-              !t.isCompanyVisaLoan &&
-              !t.isAutoRentCharge &&
-              !/Food with paroya|Samosa tea|Enoc|Milk and bnana|Gril khai|Tamara instalment|Fountain Head|Company Loan|Room Rent/i.test(t.description || t.note || t.person || t.accountName || "")
-            );
+            appState.transactions = appState.transactions.filter(t => !leakedIds.has(String(t.id)));
             if (appState.transactions.length !== prevLen) {
               modifiedStorage = true;
             }
@@ -12119,13 +11092,8 @@ function applyCustomOrderCycle() {
       // Default fallback: Only Super Admin Primary Khata gets official Company Loan and Room Rent
       const khataObj = userKhatas.find(k => k.id === activeKhataId);
       resetToBlankKhatabook(khataObj ? khataObj.name : "Rider", currentUser?.email || "");
-      if (isAli && isPrimary) {
-        appState.transactions = JSON.parse(JSON.stringify([...COMPANY_LOAN_REPORT_ENTRIES, ...ROOM_RENT_REPORT_ENTRIES]));
-        appState.agreedMonthlyRent = 500;
-      } else {
-        appState.transactions = [];
-        appState.agreedMonthlyRent = 0;
-      }
+      appState.transactions = [];
+      appState.agreedMonthlyRent = 0;
       try { safeSetItem(key, JSON.stringify(appState)); } catch(e) {}
       recomputePersonSummary();
     }
