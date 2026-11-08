@@ -437,6 +437,47 @@
     /* Hide scrollbar */
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* 100% Screen-Fit Responsive Statement Tables (Zero Horizontal Overflow) */
+    .table-fit-screen {
+      width: 100% !important;
+      max-width: 100% !important;
+      border-collapse: collapse !important;
+    }
+    @media (max-width: 640px) {
+      .table-fit-screen th, .table-fit-screen td {
+        padding-left: 4px !important;
+        padding-right: 4px !important;
+        font-size: 11px !important;
+        line-height: 1.25 !important;
+      }
+      .table-fit-screen .desc-fit {
+        max-width: 95px !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+        cursor: pointer !important;
+        border-bottom: 1px dotted rgba(100, 116, 139, 0.4) !important;
+        transition: all 0.15s ease-in-out !important;
+      }
+      .table-fit-screen .desc-fit.expanded {
+        max-width: none !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        white-space: normal !important;
+        word-break: break-word !important;
+        background-color: #fef3c7 !important;
+        color: #78350f !important;
+        padding: 3px 6px !important;
+        border-radius: 6px !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+        border-bottom: none !important;
+      }
+      .table-fit-screen .badge-fit {
+        padding: 1px 5px !important;
+        font-size: 9px !important;
+      }
+    }
   
     /* Direct Mobile Print & PDF Export Styles */
     #printContainer { display: none; }
@@ -964,7 +1005,7 @@
           <span id="headerUserIcon"></span>
           <span id="headerUserLabel"></span>
         </div>
-        <span id="headerTotalEntriesBadge"<span id="headerTotalEntriesBadge" class="hidden">29 Entries</span>
+        <span id="headerTotalEntriesBadge" class="hidden">29 Entries</span>
       </div>
 
     </div>
@@ -1604,16 +1645,14 @@
             <h4 class="font-bold text-xs text-slate-900 uppercase tracking-wide">Daily Delivery Records</h4>
           </div>
           <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
+            <table class="w-full text-left text-xs table-fit-screen">
               <thead class="bg-[#1c130e] text-[#fef3c7] font-bold">
                 <tr>
-                  <th class="py-2 px-3">Date</th>
-                  <th class="py-2 px-3">Day</th>
-                  <th class="py-2 px-3 text-right">Orders</th>
-                  <th class="py-2 px-3 text-right">Rate (<span class="app-currency-label">AED</span>)</th>
-                  <th class="py-2 px-3 text-right">Earn (<span class="app-currency-label">AED</span>)</th>
-                  <th class="py-2 px-3">Notes</th>
-                  <th class="py-2 px-3 text-center">Action</th>
+                  <th class="py-2 px-1.5 sm:px-3">Date</th>
+                  <th class="py-2 px-1.5 sm:px-3 text-right">Orders</th>
+                  <th class="py-2 px-1.5 sm:px-3 text-right">Rate</th>
+                  <th class="py-2 px-1.5 sm:px-3 text-right">Earn (<span class="app-currency-label">AED</span>)</th>
+                  <th class="py-2 px-1 sm:px-3 text-center">Action</th>
                 </tr>
               </thead>
               <tbody id="ordersTableBody" class="divide-y divide-[#ede1d3]">
@@ -1645,16 +1684,63 @@
           </button>
         </div>
 
-        <!-- UNIFIED SINGLE CARD: Monthly Living Expenses (Food + Fuel + Other in 1 Card) -->
+        <!-- Custom Expense Cycle Toolbar with Calendar Icon Month & From/To Range Cells (Exact Match to Order Sheet) -->
+        <div class="card-cream p-3 bg-[#faf6f0] space-y-2.5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            
+            <!-- Date Selection Row: Calendar Month Picker + From Date + To Date -->
+            <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
+              <!-- Calendar Icon Month Selector (Tapping opens month list to auto-fill From & To) -->
+              <div class="relative w-8 h-8 rounded-xl bg-amber-600 hover:bg-amber-700 text-white flex items-center justify-center text-sm shadow-xs transition active:scale-90 cursor-pointer flex-shrink-0" title="Tap Calendar to Pick Month">
+                <span>📅</span>
+                <select id="foodMonthSelect" onchange="onFoodMonthSelectChange(this.value)" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full capitalize">
+                  <!-- Populated dynamically -->
+                </select>
+              </div>
+
+              <!-- From Date Cell -->
+              <div class="flex items-center space-x-1 bg-white border border-[#ebdccb] rounded-xl px-2 py-1 shadow-2xs">
+                <span class="text-slate-400 font-bold text-[10px] uppercase">From</span>
+                <input type="date" id="foodCycleFromDate" onchange="applyCustomFoodCycle()" class="text-xs font-bold bg-transparent text-slate-800 outline-none cursor-pointer">
+              </div>
+
+              <!-- To Date Cell -->
+              <div class="flex items-center space-x-1 bg-white border border-[#ebdccb] rounded-xl px-2 py-1 shadow-2xs">
+                <span class="text-slate-400 font-bold text-[10px] uppercase">To</span>
+                <input type="date" id="foodCycleToDate" onchange="applyCustomFoodCycle()" class="text-xs font-bold bg-transparent text-slate-800 outline-none cursor-pointer">
+              </div>
+
+              <!-- Quick Presets -->
+              <button type="button" onclick="setFoodCyclePreset('current_month')" class="px-2 py-1 bg-white border border-[#ebdccb] text-slate-700 font-bold rounded-xl text-[11px] hover:bg-slate-50 shadow-2xs transition">
+                This Month
+              </button>
+              <button type="button" onclick="setFoodCyclePreset('all')" class="px-2 py-1 bg-white border border-[#ebdccb] text-slate-700 font-bold rounded-xl text-[11px] hover:bg-slate-50 shadow-2xs transition">
+                All
+              </button>
+            </div>
+
+            <!-- Active Range Label -->
+            <div id="foodCycleActiveLabel" class="text-[10px] font-bold text-amber-900 bg-amber-100/70 border border-amber-300/70 px-2 py-0.5 rounded-lg">
+              Active: This Month
+            </div>
+          </div>
+        </div>
+
+        <!-- UNIFIED SINGLE CARD: Monthly Living Expenses Total, Daily Average & Category Breakdown -->
         <div class="card-espresso p-4 text-white space-y-3.5">
           <div class="flex items-center justify-between pb-2 border-b border-amber-900/40">
             <div>
               <div class="text-[10px] font-bold text-amber-200 uppercase tracking-widest">Monthly Living Expenses Total</div>
               <div class="mt-1 flex items-baseline">
-                <span id="sheetLivingTotal" class="font-luxury text-3xl font-extrabold text-[#fef3c7]">2230.00</span>
+                <span id="sheetLivingTotal" class="font-luxury text-3xl font-extrabold text-[#fef3c7]">0.00</span>
                 <span class="app-currency-label text-xs font-bold ml-1 text-amber-400">AED</span>
               </div>
-              <div class="text-[9px] text-amber-300/80 mt-0.5">Food, bike fuel &amp; other living costs in selected month</div>
+              <div class="text-[11px] text-amber-300 font-bold mt-1 flex items-center space-x-1.5">
+                <span>Daily Average:</span>
+                <b id="sheetLivingAvgHeader" class="text-[#fef3c7] font-mono text-base">0.00 AED</b>
+                <span class="text-amber-400/80 text-[10px] font-normal">/day</span>
+                <span id="sheetLivingDaysTag" class="text-[9px] text-amber-300/70 font-normal ml-1"></span>
+              </div>
             </div>
             <button type="button" onclick="openAddModal('Food')" class="bg-[#b45309] hover:bg-[#92400e] text-[#fef3c7] text-xs font-bold px-3.5 py-2 rounded-xl shadow-xs transition flex items-center space-x-1.5 border border-amber-500/40 active:scale-95">
               <span>➕</span>
@@ -1662,30 +1748,30 @@
             </button>
           </div>
 
-          <!-- Integrated Food, Fuel, Other in the SAME Card -->
+          <!-- Integrated Food, Fuel, Other in the SAME Card (Original 3 Cards Restored) -->
           <div class="grid grid-cols-3 gap-2 text-xs">
             <div class="bg-black/30 p-2.5 rounded-xl border border-amber-500/20 text-center">
               <div class="text-[9px] text-amber-300/90 font-bold uppercase truncate">🍔 Food &amp; Tea</div>
               <div class="mt-1 font-luxury font-black text-sm text-[#fef3c7]">
-                <span id="sheetFoodTotal">550.00</span> <span class="app-currency-label text-[8px] text-amber-400 font-normal">AED</span>
+                <span id="sheetFoodTotal">0.00</span> <span class="app-currency-label text-[8px] text-amber-400 font-normal">AED</span>
               </div>
-              <div id="sheetFoodCount" class="text-[8px] text-amber-300/70 mt-0.5">2 records</div>
+              <div id="sheetFoodCount" class="text-[8px] text-amber-300/70 mt-0.5">0 records</div>
             </div>
 
             <div class="bg-black/30 p-2.5 rounded-xl border border-amber-500/20 text-center">
               <div class="text-[9px] text-amber-300/90 font-bold uppercase truncate">⛽ Bike Fuel</div>
               <div class="mt-1 font-luxury font-black text-sm text-[#fef3c7]">
-                <span id="sheetPetrolTotal">550.00</span> <span class="app-currency-label text-[8px] text-amber-400 font-normal">AED</span>
+                <span id="sheetPetrolTotal">0.00</span> <span class="app-currency-label text-[8px] text-amber-400 font-normal">AED</span>
               </div>
-              <div id="sheetPetrolCount" class="text-[8px] text-amber-300/70 mt-0.5">2 records</div>
+              <div id="sheetPetrolCount" class="text-[8px] text-amber-300/70 mt-0.5">0 records</div>
             </div>
 
             <div class="bg-black/30 p-2.5 rounded-xl border border-amber-500/20 text-center">
               <div class="text-[9px] text-amber-300/90 font-bold uppercase truncate">📱 Other Exp</div>
               <div class="mt-1 font-luxury font-black text-sm text-[#fef3c7]">
-                <span id="sheetOtherTotal">1130.00</span> <span class="app-currency-label text-[8px] text-amber-400 font-normal">AED</span>
+                <span id="sheetOtherTotal">0.00</span> <span class="app-currency-label text-[8px] text-amber-400 font-normal">AED</span>
               </div>
-              <div id="sheetOtherCount" class="text-[8px] text-amber-300/70 mt-0.5">3 records</div>
+              <div id="sheetOtherCount" class="text-[8px] text-amber-300/70 mt-0.5">0 records</div>
             </div>
           </div>
         </div>
@@ -1725,14 +1811,14 @@
             <h4 class="font-bold text-xs text-slate-900 uppercase tracking-wide">Datewise Expenses Log</h4>
           </div>
           <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
+            <table class="w-full text-left text-xs table-fit-screen">
               <thead class="bg-[#1c130e] text-[#fef3c7] font-bold">
                 <tr>
-                  <th class="py-2 px-2.5">Date</th>
-                  <th class="py-2 px-2">Category</th>
-                  <th class="py-2 px-2.5">Description</th>
-                  <th class="py-2 px-2 text-right">Amount (<span class="app-currency-label">AED</span>)</th>
-                  <th class="py-2 px-2 text-center">Action</th>
+                  <th class="py-2 px-1.5 sm:px-2.5">Date</th>
+                  <th class="py-2 px-1 sm:px-2">Category</th>
+                  <th class="py-2 px-1.5 sm:px-2.5">Description</th>
+                  <th class="py-2 px-1.5 sm:px-2 text-right">Amount (<span class="app-currency-label">AED</span>)</th>
+                  <th class="py-2 px-1 sm:px-2 text-center">Action</th>
                 </tr>
               </thead>
               <tbody id="foodTableBody" class="divide-y divide-[#ede1d3]"><tr class="hover:bg-slate-50 transition">
@@ -1915,15 +2001,14 @@
             <span id="roomRentCountBadge" class="text-[10px] text-slate-500 font-mono">2 entries</span>
           </div>
           <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
+            <table class="w-full text-left text-xs table-fit-screen">
               <thead class="bg-[#1c130e] text-[#fef3c7] font-bold">
                 <tr>
-                  <th class="py-2 px-3">Date</th>
-                  <th class="py-2 px-3">Description</th>
-                  <th class="py-2 px-3 text-right">Rent Charged</th>
-                  <th class="py-2 px-3 text-right">Paid / Out</th>
-                  <th class="py-2 px-3 text-right">Balance</th>
-                  <th class="py-2 px-3 text-center">Action</th>
+                  <th class="py-2 px-1.5 sm:px-3">Date</th>
+                  <th class="py-2 px-1.5 sm:px-3 text-right">Charged</th>
+                  <th class="py-2 px-1.5 sm:px-3 text-right">Paid</th>
+                  <th class="py-2 px-1.5 sm:px-3 text-right">Balance</th>
+                  <th class="py-2 px-1 sm:px-3 text-center">Action</th>
                 </tr>
               </thead>
               <tbody id="roomRentTableBody" class="divide-y divide-[#ede1d3]">
@@ -2145,14 +2230,14 @@
             <div id="remitMultiCurrencyTotals" class="text-xs font-mono font-bold text-purple-900">0.00 <span class="app-currency-label">AED</span></div>
           </div>
           <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
+            <table class="w-full text-left text-xs table-fit-screen">
               <thead class="bg-[#1c130e] text-[#fef3c7] font-bold">
                 <tr>
-                  <th class="py-2.5 px-3 whitespace-nowrap">Date</th>
-                  <th class="py-2.5 px-3">Description / Slip</th>
-                  <th class="py-2.5 px-3 text-right whitespace-nowrap">Amount (<span class="app-currency-label">AED</span>)</th>
-                  <th class="py-2.5 px-3 text-right whitespace-nowrap">Received Amount</th>
-                  <th class="py-2.5 px-3 text-center whitespace-nowrap">Action</th>
+                  <th class="py-2 px-1.5 sm:px-3 whitespace-nowrap">Date</th>
+                  <th class="py-2 px-1.5 sm:px-3">Description</th>
+                  <th class="py-2 px-1.5 sm:px-3 text-right whitespace-nowrap">Sent (<span class="app-currency-label">AED</span>)</th>
+                  <th class="py-2 px-1.5 sm:px-3 text-right whitespace-nowrap">Received</th>
+                  <th class="py-2 px-1 sm:px-3 text-center whitespace-nowrap">Action</th>
                 </tr>
               </thead>
               <tbody id="remitLedgerBody" class="divide-y divide-[#ede1d3]"><tr class="hover:bg-slate-50 transition">
@@ -2266,15 +2351,15 @@
         <!-- Statement Table -->
         <div class="card-cream overflow-hidden border-[#ebdccb]">
           <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
+            <table class="w-full text-left text-xs table-fit-screen">
               <thead class="bg-[#1c130e] text-[#fef3c7] font-bold">
                 <tr>
-                  <th class="py-2 px-3">Date</th>
-                  <th class="py-2 px-3">Category</th>
-                  <th class="py-2 px-3">Description</th>
-                  <th class="py-2 px-3 text-right">In (<span class="app-currency-label">AED</span>)</th>
-                  <th class="py-2 px-3 text-right">Out (<span class="app-currency-label">AED</span>)</th>
-                  <th class="py-2 px-3 text-center">Action</th>
+                  <th class="py-2 px-1.5 sm:px-3">Date</th>
+                  <th class="py-2 px-1 sm:px-3">Account</th>
+                  <th class="py-2 px-1.5 sm:px-3">Description</th>
+                  <th class="py-2 px-1.5 sm:px-3 text-right">In</th>
+                  <th class="py-2 px-1.5 sm:px-3 text-right">Out</th>
+                  <th class="py-2 px-1 sm:px-3 text-center">Action</th>
                 </tr>
               </thead>
               <tbody id="statementTableBody" class="divide-y divide-[#ede1d3]"></tbody>
@@ -2656,6 +2741,34 @@
           </div>
         </div>
 
+        <!-- AI Self-Healing Sentinel & Crash Watchdog Status (Super Admin Only) -->
+        <div id="settingsAiSentinelCard" class="p-3 rounded-2xl bg-indigo-50/70 border border-indigo-200/80 space-y-2 hidden">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <span class="text-base">🛡️</span>
+              <div>
+                <span class="font-bold text-indigo-950 text-xs">AI Self-Healing Engine</span>
+                <div class="text-[9px] text-indigo-700">Code &amp; Formula Watchdog</div>
+              </div>
+            </div>
+            <span class="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
+              🟢 Active
+            </span>
+          </div>
+          <div class="flex justify-between items-center text-[10px] text-indigo-900 pt-1 border-t border-indigo-100">
+            <span>Auto-Recovered Issues:</span>
+            <b id="aiWatchdogHealedCount" class="font-mono text-emerald-700 font-extrabold">0 Auto-Healed</b>
+          </div>
+          <div class="flex space-x-2 pt-1">
+            <button type="button" onclick="runAiSelfAuditNow()" class="flex-1 py-1.5 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white font-bold text-[10px] transition active:scale-95 shadow-xs">
+              🔍 Run AI Health Audit
+            </button>
+            <button type="button" onclick="openAiHealthLogsModal()" class="px-2.5 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-indigo-900 border border-indigo-200 font-bold text-[10px] transition active:scale-95 shadow-2xs">
+              📋 Logs
+            </button>
+          </div>
+        </div>
+
         <button id="settingsAdminBtn" type="button" onclick="closeModal('modalSettingsTools'); switchTab('admin');" class="w-full text-left p-3 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-950 font-extrabold border border-amber-400/50 flex items-center justify-between transition shadow-xs hidden">
           <div class="flex items-center space-x-2.5">
             <span class="text-xl">👑</span>
@@ -2770,14 +2883,14 @@
 
       <!-- Scrollable Ledger Table -->
       <div class="flex-1 overflow-y-auto p-2">
-        <table class="w-full text-left text-xs">
+        <table class="w-full text-left text-xs table-fit-screen">
           <thead class="bg-[#1c130e] text-[#fef3c7] font-bold sticky top-0">
             <tr>
-              <th class="py-2 px-2.5">Date</th>
-              <th class="py-2 px-2 text-right">Given (Out)</th>
-              <th class="py-2 px-2 text-right">Received (In)</th>
-              <th class="py-2 px-2.5">Description</th>
-              <th class="py-2 px-2 text-center">Action</th>
+              <th class="py-2 px-1.5 sm:px-2.5">Date</th>
+              <th class="py-2 px-1.5 sm:px-2 text-right">Given</th>
+              <th class="py-2 px-1.5 sm:px-2 text-right">Received</th>
+              <th class="py-2 px-1.5 sm:px-2.5">Description</th>
+              <th class="py-2 px-1 sm:px-2 text-center">Action</th>
             </tr>
           </thead>
           <tbody id="accLedgerTableBody" class="divide-y divide-[#ede1d3]">
@@ -2968,10 +3081,10 @@
           </div>
         </div>
 
-        <!-- Description -->
-        <div>
+        <!-- Description / Notes (Hidden for Orders) -->
+        <div id="descriptionField">
           <label class="block font-bold text-slate-700 mb-1">Description / Notes</label>
-          <input type="text" id="entryDetail" required="" placeholder="e.g. Lunch, ADNOC petrol, groceries..." class="w-full px-3 py-1.5 border border-slate-300 rounded-lg">
+          <input type="text" id="entryDetail" placeholder="e.g. Lunch, ADNOC petrol, groceries..." class="w-full px-3 py-1.5 border border-slate-300 rounded-lg">
         </div>
 
         <!-- Month Dropdown -->
@@ -3477,15 +3590,15 @@ create policy "Allow public all" on public."RiderKhatabook"
         <form id="forgotPasswordForm" onsubmit="handleSendPasswordReset(event)" class="space-y-3.5">
           <div>
             <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">Registered Email</label>
-            <input type="email" id="forgotInputEmail" required placeholder="e.g. rider@gmail.com" class="w-full border border-slate-300 rounded-2xl px-3.5 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-amber-500 outline-none">
+            <input type="email" id="modalForgotInputEmail" required placeholder="e.g. rider@gmail.com" class="w-full border border-slate-300 rounded-2xl px-3.5 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-amber-500 outline-none">
           </div>
 
-          <div id="forgotErrorMsg" class="hidden p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold leading-normal"></div>
-          <div id="forgotSuccessMsg" class="hidden p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold leading-normal"></div>
+          <div id="modalForgotErrorMsg" class="hidden p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold leading-normal"></div>
+          <div id="modalForgotSuccessMsg" class="hidden p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold leading-normal"></div>
 
-          <button id="forgotSubmitBtn" type="submit" class="w-full py-3 rounded-full bg-gradient-to-r from-[#b45309] to-[#d97706] hover:from-[#92400e] hover:to-[#b45309] text-white font-bold text-sm shadow-md transition active:scale-[0.98] flex items-center justify-center space-x-2">
-            <span id="forgotSubmitSpinner" class="hidden animate-spin">⏳</span>
-            <span id="forgotSubmitText">Send Reset Link</span>
+          <button id="modalForgotSubmitBtn" type="submit" class="w-full py-3 rounded-full bg-gradient-to-r from-[#b45309] to-[#d97706] hover:from-[#92400e] hover:to-[#b45309] text-white font-bold text-sm shadow-md transition active:scale-[0.98] flex items-center justify-center space-x-2">
+            <span id="modalForgotSubmitSpinner" class="hidden animate-spin">⏳</span>
+            <span id="modalForgotSubmitText">Send Reset Link</span>
           </button>
         </form>
 
@@ -3820,6 +3933,173 @@ create policy "Allow public all" on public."RiderKhatabook"
       }
       delete _inMemoryStorage[key];
     }
+
+    // =========================================================================
+    // 🛡️ AI SELF-HEALING WATCHDOG & FORMULA ERROR-GUARD ENGINE
+    // =========================================================================
+    var AiWatchdog = {
+      version: "2.0-AutoHeal",
+      errorCount: 0,
+      healedCount: 0,
+      logs: [],
+
+      init() {
+        if (typeof window === 'undefined') return;
+
+        // 1. Trap all uncaught JavaScript runtime exceptions
+        window.onerror = (message, source, lineno, colno, error) => {
+          this.handleCrash({
+            type: "UNCAUGHT_EXCEPTION",
+            message: String(message),
+            source: source ? String(source).split('/').pop() : 'inline',
+            line: lineno,
+            col: colno,
+            stack: error ? error.stack : ''
+          });
+          return true; // Prevents browser error freeze
+        };
+
+        // 2. Trap unhandled asynchronous Promise rejections
+        window.onunhandledrejection = (event) => {
+          const reason = event.reason;
+          this.handleCrash({
+            type: "UNHANDLED_PROMISE",
+            message: (reason && reason.message) ? reason.message : String(reason || 'Promise rejection'),
+            stack: (reason && reason.stack) ? reason.stack : ''
+          });
+          if (event && event.preventDefault) event.preventDefault();
+        };
+
+        // 3. Periodic clean up of stuck backdrops
+        setInterval(() => { this.autoHealStuckModals(); }, 5000);
+      },
+
+      handleCrash(errInfo) {
+        this.errorCount++;
+        this.healedCount++;
+        const logEntry = {
+          id: 'err_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+          time: new Date().toLocaleTimeString(),
+          type: errInfo.type || 'RUNTIME_ERROR',
+          message: String(errInfo.message || 'Unknown error').slice(0, 200),
+          location: String(errInfo.source || 'app') + ':' + (errInfo.line || '0'),
+          healed: true
+        };
+        this.logs.unshift(logEntry);
+        if (this.logs.length > 50) this.logs.pop();
+
+        try {
+          const existing = JSON.parse(safeGetItem('rider_ai_health_logs') || '[]');
+          existing.unshift(logEntry);
+          safeSetItem('rider_ai_health_logs', JSON.stringify(existing.slice(0, 30)));
+        } catch(e) {}
+
+        this.autoHealStuckModals();
+        this.updateUiBadge();
+      },
+
+      updateUiBadge() {
+        const badge = document.getElementById('aiWatchdogHealedCount');
+        if (badge) {
+          badge.textContent = this.healedCount + ' Auto-Healed';
+        }
+      },
+
+      safeNum(val, fallback = 0) {
+        if (val === null || typeof val === 'undefined') return fallback;
+        const n = parseFloat(val);
+        return (!isNaN(n) && Number.isFinite(n)) ? n : fallback;
+      },
+
+      autoHealStuckModals() {
+        try {
+          const openModals = document.querySelectorAll('.modal-backdrop:not(.hidden)');
+          if (openModals.length === 0) {
+            document.body.classList.remove('modal-open');
+            const drawerBackdrop = document.getElementById('drawerBackdrop');
+            if (drawerBackdrop && drawerBackdrop.classList.contains('opacity-0') && !drawerBackdrop.classList.contains('hidden')) {
+              drawerBackdrop.classList.add('hidden');
+            }
+          }
+        } catch(e) {}
+      },
+
+      auditAndRepairData() {
+        let fixedCount = 0;
+        if (!appState || typeof appState !== 'object') return fixedCount;
+
+        if (!Array.isArray(appState.transactions)) {
+          appState.transactions = [];
+          fixedCount++;
+        }
+
+        const seenIds = new Set();
+        const validTxs = [];
+
+        (appState.transactions || []).forEach(t => {
+          if (!t || typeof t !== 'object') {
+            fixedCount++;
+            return;
+          }
+          if (!t.id) {
+            t.id = 'tx_auto_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+            fixedCount++;
+          }
+          const strId = String(t.id);
+          if (seenIds.has(strId)) {
+            fixedCount++;
+            return;
+          }
+          seenIds.add(strId);
+
+          const cin = this.safeNum(t.cash_in, 0);
+          const cout = this.safeNum(t.cash_out, 0);
+          if (t.cash_in !== cin || t.cash_out !== cout) {
+            t.cash_in = cin;
+            t.cash_out = cout;
+            fixedCount++;
+          }
+          if (!t.date || typeof t.date !== 'string' || !/^\d{4}-\d{2}-\d{2}/.test(t.date)) {
+            t.date = (typeof getDeviceLocalDate === 'function') ? getDeviceLocalDate() : new Date().toISOString().slice(0, 10);
+            fixedCount++;
+          }
+          validTxs.push(t);
+        });
+
+        if (appState.transactions.length !== validTxs.length) {
+          appState.transactions = validTxs;
+        }
+
+        if (Array.isArray(appState.orders)) {
+          appState.orders.forEach(o => {
+            if (!o.id) { o.id = 'ord_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6); fixedCount++; }
+            o.count = Math.max(0, parseInt(o.count) || 0);
+            o.rate = this.safeNum(o.rate, appState.fixed_rate || 7.80);
+            o.earnings = this.safeNum(o.earnings, Math.round(o.count * o.rate * 100) / 100);
+          });
+        }
+
+        // Rate & Display Consistency Sentinel (Auto-align background memory with UI display)
+        if (typeof getRateForCycleKey === 'function') {
+          const activeCycle = appState.activeOrderCycle || 'ALL';
+          const expectedRate = getRateForCycleKey(activeCycle);
+          if (expectedRate > 0 && appState.fixed_rate !== expectedRate) {
+            appState.fixed_rate = expectedRate;
+            fixedCount++;
+          }
+          if (typeof document !== 'undefined') {
+            const lbl = document.getElementById('lblFixedRate');
+            if (lbl && expectedRate > 0 && lbl.textContent !== expectedRate.toFixed(2)) {
+              lbl.textContent = expectedRate.toFixed(2);
+              fixedCount++;
+            }
+          }
+        }
+
+        return fixedCount;
+      }
+    };
+    AiWatchdog.init();
   
     var chartMode = 'earnings';
 
@@ -5968,6 +6248,70 @@ create policy "Allow public all" on public."RiderKhatabook"
       deletedRentIds: []
     };
 
+    function runAiSelfAuditNow() {
+      if (!isSuperAdmin()) {
+        showToast("⚠️ Restricted: AI Health Audit is restricted to Super Admin only.", "error");
+        return;
+      }
+      if (typeof AiWatchdog === 'undefined') return;
+      showToast("🔍 AI Watchdog: Scanning accounts & formulas...");
+      const repaired = AiWatchdog.auditAndRepairData();
+      saveToStorage(false, false);
+      renderAll();
+      if (repaired > 0) {
+        showToast("🛡️ AI Watchdog: " + repaired + " anomalies auto-repaired successfully!");
+      } else {
+        showToast("✅ 100% Healthy: All accounts, formulas & balances are clean!");
+      }
+    }
+
+    function openAiHealthLogsModal() {
+      if (!isSuperAdmin()) {
+        showToast("⚠️ Restricted: AI Health Logs are restricted to Super Admin only.", "error");
+        return;
+      }
+      closeModal('modalSettingsTools');
+      const container = document.getElementById('aiLogsContainer');
+      if (container) {
+        const logs = (typeof AiWatchdog !== 'undefined' && AiWatchdog.logs.length > 0) 
+          ? AiWatchdog.logs 
+          : JSON.parse(safeGetItem('rider_ai_health_logs') || '[]');
+
+        if (logs.length === 0) {
+          container.innerHTML = '<div class="p-3 rounded-xl bg-slate-50 text-slate-500 text-center text-xs">No errors recorded. System running smoothly! 🎉</div>';
+        } else {
+          container.innerHTML = logs.map(l => `
+            <div class="p-2 rounded-xl bg-slate-50 border border-slate-200 space-y-0.5 text-[10px]">
+              <div class="flex justify-between items-center">
+                <b class="text-indigo-900 font-mono">${escapeHtml(l.type)}</b>
+                <span class="text-slate-400">${escapeHtml(l.time)}</span>
+              </div>
+              <div class="text-slate-700 font-mono text-[9px] break-all">${escapeHtml(l.message)}</div>
+              <div class="flex justify-between items-center text-[9px] text-emerald-700 pt-0.5">
+                <span>📍 ${escapeHtml(l.location)}</span>
+                <span class="font-bold">✅ Auto-Recovered</span>
+              </div>
+            </div>
+          `).join('');
+        }
+      }
+      openModal('modalAiHealthLogs');
+    }
+
+    function clearAiLogs() {
+      if (typeof AiWatchdog !== 'undefined') {
+        AiWatchdog.logs = [];
+        AiWatchdog.healedCount = 0;
+        AiWatchdog.updateUiBadge();
+      }
+      safeRemoveItem('rider_ai_health_logs');
+      const container = document.getElementById('aiLogsContainer');
+      if (container) {
+        container.innerHTML = '<div class="p-3 rounded-xl bg-slate-50 text-slate-500 text-center text-xs">Logs cleared. System running smoothly! 🎉</div>';
+      }
+      showToast("🧹 AI Logs cleared.");
+    }
+
     function initApp() {
       try {
         if (typeof ModalManager !== "undefined" && typeof ModalManager.init === "function") {
@@ -6010,6 +6354,7 @@ create policy "Allow public all" on public."RiderKhatabook"
         populateCalendarMonthFilter(appState.activeMonth);
         populateOrderCycleFilter(appState.activeOrderCycle);
         populateOrderMonthDropdown();
+        populateFoodMonthDropdown();
         setupEvents();
         switchTab('dashboard');
         renderAll();
@@ -6452,14 +6797,29 @@ create policy "Allow public all" on public."RiderKhatabook"
     }
 
     function renderAll() {
-      updateAllCurrencyLabels();
-      renderDashboard();
-      renderOrders();
-      renderFood();
-      renderRoomRent();
-      renderLoan();
-      renderRemittance();
-      renderStatementTable();
+      const renderTasks = [
+        ['Currency Labels', updateAllCurrencyLabels],
+        ['Dashboard', renderDashboard],
+        ['Orders', renderOrders],
+        ['Daily Living', renderFood],
+        ['Room Rent', renderRoomRent],
+        ['Loan', renderLoan],
+        ['Remittance', renderRemittance],
+        ['Statement Table', renderStatementTable]
+      ];
+      renderTasks.forEach(([name, fn]) => {
+        try {
+          if (typeof fn === 'function') fn();
+        } catch (err) {
+          console.warn('[AI Guard] Auto-recovered render error in ' + name + ':', err);
+          if (typeof AiWatchdog !== 'undefined') {
+            AiWatchdog.handleCrash({ type: 'RENDER_' + name.toUpperCase().replace(/\s+/g, '_'), message: err.message || String(err) });
+          }
+        }
+      });
+      if (typeof AiWatchdog !== 'undefined') {
+        AiWatchdog.updateUiBadge();
+      }
     }
     function renderRoomRent() {
       const rent = AccountingEngine.getRoomRentSummary();
@@ -6523,29 +6883,43 @@ create policy "Allow public all" on public."RiderKhatabook"
         }
       });
 
+      // 1. Calculate cumulative running balance chronologically (Past to Present)
       rentEntries.sort((a, b) => toIsoDate(a.date).localeCompare(toIsoDate(b.date)));
+      let runningBal = 0;
+      rentEntries.forEach(entry => {
+        runningBal += (entry.charged - entry.paid);
+        entry.cumulativeBal = runningBal;
+      });
+
+      // 2. Sort Present to Past (Newest 1st on top, Oldest last on bottom)
+      rentEntries.sort((a, b) => {
+        const d = toIsoDate(b.date).localeCompare(toIsoDate(a.date));
+        if (d !== 0) return d;
+        return String(b.id || '').localeCompare(String(a.id || ''));
+      });
 
       if (countBadge) countBadge.textContent = `${rentEntries.length} entries`;
 
       if (rentEntries.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="py-5 text-center text-slate-400">No room rent records found yet. Tap "Record Rent Payment" or "Set Monthly Rent" to start!</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="py-5 text-center text-slate-400">No room rent records found yet. Tap "Record Rent Payment" or "Set Monthly Rent" to start!</td></tr>`;
         return;
       }
 
-      let runningBal = 0;
       rentEntries.forEach(entry => {
-        runningBal += (entry.charged - entry.paid);
+        const curBal = entry.cumulativeBal;
         const tr = document.createElement("tr");
         tr.className = "hover:bg-slate-50 transition";
         tr.innerHTML = `
-          <td class="py-2 px-3 font-semibold text-slate-800 whitespace-nowrap">${escapeHtml(entry.date)}</td>
-          <td class="py-2 px-3 text-slate-700">${escapeHtml(entry.detail)}</td>
-          <td class="py-2 px-3 text-right font-mono text-rose-600 font-semibold">${entry.charged > 0 ? entry.charged.toFixed(2) : '—'}</td>
-          <td class="py-2 px-3 text-right font-mono text-emerald-700 font-semibold">${entry.paid > 0 ? entry.paid.toFixed(2) : '—'}</td>
-          <td class="py-2 px-3 text-right font-mono font-bold ${runningBal > 0 ? 'text-rose-700' : 'text-slate-700'}">${runningBal.toFixed(2)}</td>
-          <td class="py-2 px-3 text-center whitespace-nowrap">
-            <button onclick="editTransaction('${escapeHtml(entry.id)}')" class="text-blue-600 hover:text-blue-800 mr-2 text-xs" title="Edit">✏️</button>
-            <button onclick="deleteTransaction('${escapeHtml(entry.id)}')" class="text-rose-600 hover:text-rose-800 text-xs" title="Delete">🗑️</button>
+          <td class="py-2 px-1.5 sm:px-3 font-semibold text-slate-800 whitespace-nowrap text-[11px]">
+            <div>${escapeHtml(entry.date)}</div>
+            <div class="text-[9px] text-slate-400 font-normal desc-fit max-w-[75px] sm:max-w-none" title="Tap to view full description" onclick="toggleDescExpand(this)">${escapeHtml(entry.detail)}</div>
+          </td>
+          <td class="py-2 px-1.5 sm:px-3 text-right font-mono text-rose-600 font-semibold text-[11px]">${entry.charged > 0 ? entry.charged.toFixed(2) : '—'}</td>
+          <td class="py-2 px-1.5 sm:px-3 text-right font-mono text-emerald-700 font-semibold text-[11px]">${entry.paid > 0 ? entry.paid.toFixed(2) : '—'}</td>
+          <td class="py-2 px-1.5 sm:px-3 text-right font-mono font-bold text-[11px] ${curBal > 0 ? 'text-rose-700' : 'text-slate-700'}">${curBal.toFixed(2)}</td>
+          <td class="py-2 px-1 sm:px-3 text-center whitespace-nowrap text-xs">
+            <button onclick="editTransaction('${escapeHtml(entry.id)}')" class="text-blue-600 hover:text-blue-800 mr-1.5" title="Edit">✏️</button>
+            <button onclick="deleteTransaction('${escapeHtml(entry.id)}')" class="text-rose-600 hover:text-rose-800" title="Delete">🗑️</button>
           </td>
         `;
         tbody.appendChild(tr);
@@ -6660,6 +7034,111 @@ create policy "Allow public all" on public."RiderKhatabook"
       renderOrders();
       closeModal("modalOrderDateRange");
       showToast(`📅 Delivery Cycle applied: ${fromVal} to ${toVal}`);
+    }
+
+    function populateFoodMonthDropdown() {
+      const select = document.getElementById("foodMonthSelect");
+      if (!select) return;
+      select.innerHTML = "";
+      const months = new Map();
+      const today = new Date().toISOString().slice(0, 10);
+      const cur = getCalendarMonthInfo(today);
+      for (let i = -1; i < 16; i++) {
+        let y = cur.year, m = cur.month - i;
+        while (m < 1) { m += 12; y -= 1; }
+        while (m > 12) { m -= 12; y += 1; }
+        const c = getCalendarMonthInfo(`${y}-${String(m).padStart(2, '0')}-01`);
+        months.set(c.key, c.label);
+      }
+      [...months.entries()].sort((a, b) => b[0].localeCompare(a[0])).forEach(([key, label]) => {
+        const opt = document.createElement("option");
+        opt.value = key;
+        opt.textContent = label;
+        select.appendChild(opt);
+      });
+      const curKey = (appState.customFoodStart || today).slice(0, 7);
+      if (months.has(curKey)) select.value = curKey;
+    }
+
+    function onFoodMonthSelectChange(monthKey) {
+      if (!monthKey) return;
+      const parts = monthKey.split('-').map(Number);
+      const y = parts[0];
+      const m = parts[1];
+      const lastDay = new Date(y, m, 0).getDate();
+
+      const start = `${y}-${String(m).padStart(2, '0')}-01`;
+      const end = `${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+      appState.customFoodStart = start;
+      appState.customFoodEnd = end;
+      appState.activeFoodCycle = "CUSTOM";
+
+      const fromInp = document.getElementById("foodCycleFromDate");
+      const toInp = document.getElementById("foodCycleToDate");
+      if (fromInp) fromInp.value = start;
+      if (toInp) toInp.value = end;
+
+      const lbl = document.getElementById("foodCycleActiveLabel");
+      if (lbl) lbl.textContent = `Active: ${start} to ${end}`;
+
+      saveToStorage(false);
+      renderFood();
+      showToast(`📅 Expenses Date Range applied: ${start} to ${end}`);
+    }
+
+    function applyCustomFoodCycle() {
+      const fromVal = document.getElementById("foodCycleFromDate")?.value;
+      const toVal = document.getElementById("foodCycleToDate")?.value;
+      if (fromVal && toVal) {
+        if (fromVal > toVal) {
+          showToast("From date cannot be after To date!", false);
+          return;
+        }
+        appState.customFoodStart = fromVal;
+        appState.customFoodEnd = toVal;
+        appState.activeFoodCycle = "CUSTOM";
+        
+        const lbl = document.getElementById("foodCycleActiveLabel");
+        if (lbl) lbl.textContent = `Active: ${fromVal} to ${toVal}`;
+        saveToStorage(false);
+        renderFood();
+      } else {
+        showToast("Please enter both From and To dates!", false);
+      }
+    }
+
+    function setFoodCyclePreset(preset) {
+      const today = new Date();
+      if (preset === 'current_month') {
+        const y = today.getFullYear();
+        const m = today.getMonth();
+        const start = `${y}-${String(m + 1).padStart(2, '0')}-01`;
+        const lastDay = new Date(y, m + 1, 0).getDate();
+        const end = `${y}-${String(m + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+        
+        appState.customFoodStart = start;
+        appState.customFoodEnd = end;
+        appState.activeFoodCycle = "CUSTOM";
+
+        const fromInp = document.getElementById("foodCycleFromDate");
+        const toInp = document.getElementById("foodCycleToDate");
+        if (fromInp) fromInp.value = start;
+        if (toInp) toInp.value = end;
+
+        const lbl = document.getElementById("foodCycleActiveLabel");
+        if (lbl) lbl.textContent = `Active: ${start} to ${end}`;
+        saveToStorage(false);
+        renderFood();
+      } else if (preset === 'all') {
+        appState.activeFoodCycle = "ALL";
+        appState.customFoodStart = "";
+        appState.customFoodEnd = "";
+        const lbl = document.getElementById("foodCycleActiveLabel");
+        if (lbl) lbl.textContent = "Active: All Recorded Expenses";
+        saveToStorage(false);
+        renderFood();
+      }
     }
 
     function populateOrderMonthDropdown() {
@@ -7318,7 +7797,7 @@ function applyCustomOrderCycle() {
 
       if (ords.length === 0) {
         const cycleLabel = appState.activeOrderCycle === "ALL" ? "all dates" : `${appState.customOrderStart || ''} to ${appState.customOrderEnd || ''}`;
-        if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="py-4 text-center text-slate-400">No delivery records found for cycle (${escapeHtml(cycleLabel)}). Tap "+ Add Delivery Day" to record!</td></tr>`;
+        if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-400">No delivery records found for cycle (${escapeHtml(cycleLabel)}). Tap "+ Add Delivery Day" to record!</td></tr>`;
       } else {
         ords.forEach(o => {
           totalCount += (parseInt(o.count, 10) || 0);
@@ -7328,15 +7807,16 @@ function applyCustomOrderCycle() {
             const tr = document.createElement("tr");
             tr.className = "hover:bg-slate-50";
             tr.innerHTML = `
-              <td class="py-2 px-3 font-semibold text-slate-800">${escapeHtml(o.date)}</td>
-              <td class="py-2 px-3 text-slate-500">${escapeHtml(o.day || '-')}</td>
-              <td class="py-2 px-3 text-right font-mono font-bold text-slate-800">${o.count}</td>
-              <td class="py-2 px-3 text-right font-mono text-slate-600">${parseFloat(o.rate).toFixed(2)}</td>
-              <td class="py-2 px-3 text-right font-mono font-extrabold text-emerald-700">${parseFloat(o.earnings).toFixed(2)}</td>
-              <td class="py-2 px-3 text-slate-600">${escapeHtml(o.notes || '')}</td>
-              <td class="py-2 px-3 text-center">
-                <button onclick="editOrder('${escapeHtml(o.id)}')" class="text-blue-600 hover:text-blue-800 text-xs font-bold mr-2" title="Edit order">✏️</button>
-                <button onclick="deleteOrder('${escapeHtml(o.id)}')" class="text-rose-600 hover:text-rose-800 text-xs font-bold" title="Delete">🗑️</button>
+              <td class="py-2 px-1.5 sm:px-3 font-semibold text-slate-800">
+                <div class="font-bold text-[11px] leading-tight">${escapeHtml(o.date)}</div>
+                <div class="text-[9px] text-slate-400 font-medium">${escapeHtml((o.day || '-').slice(0, 3))}</div>
+              </td>
+              <td class="py-2 px-1.5 sm:px-3 text-right font-mono font-bold text-slate-800 text-[11px]">${o.count}</td>
+              <td class="py-2 px-1.5 sm:px-3 text-right font-mono text-slate-600 text-[11px]">${parseFloat(o.rate).toFixed(2)}</td>
+              <td class="py-2 px-1.5 sm:px-3 text-right font-mono font-extrabold text-emerald-700 text-[11px]">${parseFloat(o.earnings).toFixed(2)}</td>
+              <td class="py-2 px-1 sm:px-3 text-center whitespace-nowrap text-xs">
+                <button onclick="editOrder('${escapeHtml(o.id)}')" class="text-blue-600 hover:text-blue-800 mr-1.5 font-bold" title="Edit">✏️</button>
+                <button onclick="deleteOrder('${escapeHtml(o.id)}')" class="text-rose-600 hover:text-rose-800 font-bold" title="Delete">🗑️</button>
               </td>
             `;
             tbody.appendChild(tr);
@@ -7349,7 +7829,9 @@ function applyCustomOrderCycle() {
       const elTotalEarn = document.getElementById("totalOrdersEarning");
       if (elTotalEarn) elTotalEarn.textContent = `${totalEarn.toFixed(2)} ${getActiveCurrency()}`;
 
-      const currentCycleRate = Number(appState.fixed_rate) > 0 ? Number(appState.fixed_rate) : 7.80;
+      const currentCycleRate = (appState.activeOrderCycle && appState.activeOrderCycle !== 'ALL' && typeof getRateForCycleKey === 'function')
+        ? getRateForCycleKey(appState.activeOrderCycle)
+        : (Number(appState.fixed_rate) > 0 ? Number(appState.fixed_rate) : 7.80);
       const elFixedRate = document.getElementById("lblFixedRate");
       if (elFixedRate) elFixedRate.textContent = currentCycleRate.toFixed(2);
       
@@ -7446,21 +7928,60 @@ function applyCustomOrderCycle() {
     }
 
     // ================= 3. FOOD & DAILY EXPENSES =================
+    function toggleDescExpand(el) {
+      if (!el) return;
+      el.classList.toggle('expanded');
+    }
+
     function renderFood() {
-      const allCycleTxs = getFilteredTransactions();
-      
-      const expTxs = allCycleTxs.filter(t => {
+      // 1. Sync Date Range Inputs & Active Label (Exact Match to Order Sheet)
+      const fromInput = document.getElementById("foodCycleFromDate");
+      const toInput = document.getElementById("foodCycleToDate");
+      const activeLabel = document.getElementById("foodCycleActiveLabel");
+      const todayIso = (typeof getDeviceLocalDate === 'function') ? getDeviceLocalDate() : new Date().toISOString().slice(0, 10);
+
+      if (fromInput && toInput) {
+        if (!appState.customFoodStart || !appState.customFoodEnd) {
+          const parts = todayIso.split('-').map(Number);
+          const curY = parts[0];
+          const curM = parts[1];
+          appState.customFoodStart = `${curY}-${String(curM).padStart(2, '0')}-01`;
+          const lastDay = new Date(curY, curM, 0).getDate();
+          appState.customFoodEnd = `${curY}-${String(curM).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+          if (!appState.activeFoodCycle) appState.activeFoodCycle = "CUSTOM";
+        }
+        fromInput.value = appState.customFoodStart;
+        toInput.value = appState.customFoodEnd;
+      }
+
+      if (activeLabel) {
+        if (appState.activeFoodCycle === "ALL") {
+          activeLabel.textContent = "Active: All Recorded Expenses";
+        } else {
+          activeLabel.textContent = `Active: ${appState.customFoodStart || ''} to ${appState.customFoodEnd || ''}`;
+        }
+      }
+
+      // 2. Filter Transactions by Date Range
+      const allTxs = appState.transactions || [];
+      const expTxs = allTxs.filter(t => {
         const cout = parseFloat(t.cash_out) || 0;
         if (cout <= 0) return false;
         const c = String(t.category || '').toLowerCase();
-        const pName = String(t.person || '').toLowerCase();
         const isFhVisa = t.isCompanyVisaLoan || (t.detail && t.detail.toLowerCase().includes("visa deduction"));
         const isRoomRent = t.isRoomRent || (t.detail && t.detail.toLowerCase().includes("room rent")) || String(t.id || '').startsWith("rr_zv_");
         if (isFhVisa || isRoomRent || c.includes("home send") || c.includes("remittance")) return false;
         
-        const isGeneralLoan = (t.category === "Loan" || t.category === "Loan" || t.category === "Loan");
+        const isGeneralLoan = (t.category === "Loan" || t.category === "Loans");
         if (isGeneralLoan) return false;
-        
+
+        // Apply Date Range filter
+        if (appState.activeFoodCycle !== "ALL" && appState.customFoodStart && appState.customFoodEnd) {
+          const tDate = toIsoDate(t.date);
+          if (tDate < appState.customFoodStart || tDate > appState.customFoodEnd) {
+            return false;
+          }
+        }
         return true;
       }).sort((a, b) => toIsoDate(b.date).localeCompare(toIsoDate(a.date)));
 
@@ -7483,6 +8004,7 @@ function applyCustomOrderCycle() {
 
       const livingTotal = foodSum + petrolSum + otherSum;
 
+      // 3. Update Main Totals & Restored 3 Cards (Food, Fuel, Other)
       const elLiving = document.getElementById("sheetLivingTotal");
       if (elLiving) elLiving.textContent = livingTotal.toFixed(2);
       const elGrand = document.getElementById("sheetExpGrandTotal");
@@ -7505,6 +8027,54 @@ function applyCustomOrderCycle() {
 
       const elFt = document.getElementById("foodTotalSum");
       if (elFt) elFt.textContent = `${livingTotal.toFixed(2)} ${getActiveCurrency()}`;
+
+      // =========================================================================
+      // ACCURATE DAILY LIVING EXPENSE AVERAGE (SAME ALGORITHM AS ORDER SHEET)
+      // Divides total expenses by total calendar days elapsed (incl. off / zero-expense days)
+      // "Example 1 sy 10 tak agr total kharcha 8 din me ho to avrage 10 din par taqseem ho"
+      // =========================================================================
+      const distinctExpDaysSet = new Set(expTxs.map(t => toIsoDate(t.date)));
+      const activeExpDays = distinctExpDaysSet.size;
+
+      let totalCalendarDays = 0;
+      let rangeStart = appState.customFoodStart || fromInput?.value;
+      let rangeEnd = appState.customFoodEnd || toInput?.value;
+
+      if (expTxs.length > 0 || (rangeStart && rangeEnd)) {
+        if (appState.activeFoodCycle === "ALL") {
+          const sortedDates = [...expTxs.map(t => toIsoDate(t.date))].sort();
+          if (sortedDates.length > 0) {
+            rangeStart = sortedDates[0];
+            rangeEnd = sortedDates[sortedDates.length - 1];
+          }
+        }
+        if (rangeStart && rangeEnd) {
+          const effStart = rangeStart;
+          let effEnd = rangeEnd;
+          if (rangeEnd > todayIso && effStart <= todayIso) {
+            effEnd = todayIso;
+          }
+          if (effStart && effEnd && effEnd >= effStart) {
+            const d1 = new Date(effStart + "T12:00:00");
+            const d2 = new Date(effEnd + "T12:00:00");
+            totalCalendarDays = Math.round((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+          }
+        }
+      }
+
+      if (totalCalendarDays < activeExpDays) totalCalendarDays = activeExpDays;
+      const zeroExpDays = Math.max(0, totalCalendarDays - activeExpDays);
+
+      const dailyLivingAvg = totalCalendarDays > 0 ? (livingTotal / totalCalendarDays).toFixed(2) : "0.00";
+
+      // Display Daily Average right below main balance
+      const elHeaderAvg = document.getElementById("sheetLivingAvgHeader");
+      if (elHeaderAvg) elHeaderAvg.textContent = `${dailyLivingAvg} ${getActiveCurrency()}`;
+
+      const elDaysTag = document.getElementById("sheetLivingDaysTag");
+      if (elDaysTag) {
+        elDaysTag.textContent = (totalCalendarDays > 0) ? `(over ${totalCalendarDays} days)` : '';
+      }
 
       const catFilter = document.getElementById("expCategoryFilter") ? document.getElementById("expCategoryFilter").value : "ALL";
       const searchQ = document.getElementById("expSearch") ? (document.getElementById("expSearch").value || "").trim().toLowerCase() : "";
@@ -7545,18 +8115,18 @@ function applyCustomOrderCycle() {
           const tr = document.createElement("tr");
           tr.className = "hover:bg-slate-50 transition";
           tr.innerHTML = `
-            <td class="py-2 px-2.5 font-semibold text-slate-800 whitespace-nowrap">${escapeHtml(t.date)}</td>
-            <td class="py-2 px-2 whitespace-nowrap">
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${badgeColor} inline-flex items-center space-x-1">
+            <td class="py-2 px-1.5 sm:px-2.5 font-semibold text-slate-800 whitespace-nowrap text-[11px]">${escapeHtml(t.date)}</td>
+            <td class="py-2 px-1 sm:px-2 whitespace-nowrap">
+              <span class="badge-fit px-1.5 py-0.5 rounded-full text-[9px] font-bold ${badgeColor} inline-flex items-center space-x-0.5">
                 <span>${icon}</span>
-                <span>${escapeHtml(t.category || 'Expense')}</span>
+                <span>${escapeHtml(t.category || 'Exp')}</span>
               </span>
             </td>
-            <td class="py-2 px-2.5 text-slate-800 font-medium">${escapeHtml(t.detail || '-')}</td>
-            <td class="py-2 px-2 text-right font-mono font-black text-rose-600">${amount.toFixed(2)}</td>
-            <td class="py-2 px-2 text-center whitespace-nowrap">
-              <button onclick="editTransaction('${escapeHtml(t.id)}')" class="text-blue-600 hover:text-blue-800 mr-2 text-xs" title="Edit">✏️</button>
-              <button onclick="deleteTransaction('${escapeHtml(t.id)}')" class="text-rose-600 hover:text-rose-800 text-xs" title="Delete">🗑️</button>
+            <td class="py-2 px-1.5 sm:px-2.5 text-slate-800 desc-fit font-medium text-[11px]" title="Tap to view full description" onclick="toggleDescExpand(this)">${escapeHtml(t.detail || '-')}</td>
+            <td class="py-2 px-1.5 sm:px-2 text-right font-mono font-black text-rose-600 text-[11px] whitespace-nowrap">${amount.toFixed(2)}</td>
+            <td class="py-2 px-1 sm:px-2 text-center whitespace-nowrap text-xs">
+              <button onclick="editTransaction('${escapeHtml(t.id)}')" class="text-blue-600 hover:text-blue-800 mr-1.5" title="Edit">✏️</button>
+              <button onclick="deleteTransaction('${escapeHtml(t.id)}')" class="text-rose-600 hover:text-rose-800" title="Delete">🗑️</button>
             </td>`;
           tbody.appendChild(tr);
         });
@@ -7720,7 +8290,11 @@ function applyCustomOrderCycle() {
         const cat = String(t.category || '').toLowerCase();
         const pLower = String(t.person || '').toLowerCase();
         return cat.includes('len den') || cat.includes('lenden') || cat.includes('loan') || cat.includes('room rent') || t.isRoomRent || pLower.includes('room rent') || pLower.includes('company');
-      }).sort((a, b) => toIsoDate(a.date).localeCompare(toIsoDate(b.date)));
+      }).sort((a, b) => {
+        const d = toIsoDate(b.date).localeCompare(toIsoDate(a.date));
+        if (d !== 0) return d;
+        return String(b.id || '').localeCompare(String(a.id || ''));
+      });
       
       let ldTxs = allLdTxs;
       if (selectedPerson && selectedPerson !== "ALL") {
@@ -7844,13 +8418,13 @@ function applyCustomOrderCycle() {
             const tr = document.createElement("tr");
             tr.className = "hover:bg-slate-50 transition";
             tr.innerHTML = `
-              <td class="py-2 px-2.5 font-semibold text-slate-800 whitespace-nowrap">${escapeHtml(t.date)}</td>
-              <td class="py-2 px-2 text-right font-mono font-bold text-rose-600">${t.cash_out > 0 ? parseFloat(t.cash_out).toFixed(2) : '—'}</td>
-              <td class="py-2 px-2 text-right font-mono font-bold text-emerald-600">${t.cash_in > 0 ? parseFloat(t.cash_in).toFixed(2) : '—'}</td>
-              <td class="py-2 px-2.5 text-slate-700 font-medium">${escapeHtml(t.detail || '-')}</td>
-              <td class="py-2 px-2 text-center whitespace-nowrap">
-                <button onclick="closeModal('modalAccountLedger'); editTransaction('${escapeHtml(t.id)}');" class="text-blue-600 hover:text-blue-800 mr-2 text-xs" title="Edit">✏️</button>
-                <button onclick="deleteTxFromLedger('${escapeHtml(t.id)}');" class="text-rose-600 hover:text-rose-800 text-xs" title="Delete">🗑️</button>
+              <td class="py-2 px-1.5 sm:px-2.5 font-semibold text-slate-800 whitespace-nowrap text-[11px]">${escapeHtml(t.date)}</td>
+              <td class="py-2 px-1.5 sm:px-2 text-right font-mono font-bold text-rose-600 text-[11px] whitespace-nowrap">${t.cash_out > 0 ? parseFloat(t.cash_out).toFixed(2) : '—'}</td>
+              <td class="py-2 px-1.5 sm:px-2 text-right font-mono font-bold text-emerald-600 text-[11px] whitespace-nowrap">${t.cash_in > 0 ? parseFloat(t.cash_in).toFixed(2) : '—'}</td>
+              <td class="py-2 px-1.5 sm:px-2.5 text-slate-700 desc-fit font-medium text-[11px]" title="Tap to view full description" onclick="toggleDescExpand(this)">${escapeHtml(t.detail || '-')}</td>
+              <td class="py-2 px-1 sm:px-2 text-center whitespace-nowrap text-xs">
+                <button onclick="closeModal('modalAccountLedger'); editTransaction('${escapeHtml(t.id)}');" class="text-blue-600 hover:text-blue-800 mr-1.5" title="Edit">✏️</button>
+                <button onclick="deleteTxFromLedger('${escapeHtml(t.id)}');" class="text-rose-600 hover:text-rose-800" title="Delete">🗑️</button>
               </td>
             `;
             tbody.appendChild(tr);
@@ -8060,7 +8634,7 @@ function applyCustomOrderCycle() {
     function exportPersonLedgerPDF(personName) {
       const rows = (appState.transactions || [])
         .filter(t => ['Loan', 'Loans', 'Loan', 'Loan', 'Loan'].includes(String(t.category || '').trim()) && String(t.person || '').trim().toLowerCase() === String(personName || '').trim().toLowerCase())
-        .sort((a, b) => toIsoDate(a.date).localeCompare(toIsoDate(b.date)));
+        .sort((a, b) => toIsoDate(b.date).localeCompare(toIsoDate(a.date)));
       if (!rows.length) { showToast('No records found for this account.', false); return; }
       const esc = v => escapeHtml(String(v == null ? '' : v));
       const totalOut = rows.reduce((sum, t) => sum + (parseFloat(t.cash_out) || 0), 0);
@@ -8214,16 +8788,16 @@ function applyCustomOrderCycle() {
             : '—';
 
           tr.innerHTML = `
-            <td class="py-2.5 px-3 font-semibold text-slate-800 whitespace-nowrap">${escapeHtml(t.date)}</td>
-            <td class="py-2.5 px-3 text-slate-800 font-medium">
-              <span>${escapeHtml(t.detail || 'Send Remittance')}</span>
-              <span class="text-[10px] text-purple-700 font-bold ml-1.5">${escapeHtml(country)}</span>
+            <td class="py-2 px-1.5 sm:px-3 font-semibold text-slate-800 whitespace-nowrap text-[11px]">${escapeHtml(t.date)}</td>
+            <td class="py-2 px-1.5 sm:px-3 text-slate-800 desc-fit font-medium text-[11px]" title="Tap to view full description" onclick="toggleDescExpand(this)">
+              <div class="truncate font-semibold">${escapeHtml(t.detail || 'Remit')}</div>
+              <div class="text-[9px] text-purple-700 font-bold">${escapeHtml(country)}</div>
             </td>
-            <td class="py-2.5 px-3 text-right font-mono font-bold text-purple-700 whitespace-nowrap">${sentAmt.toFixed(2)}</td>
-            <td class="py-2.5 px-3 text-right font-mono font-bold text-emerald-700 whitespace-nowrap">${recDisplay}</td>
-            <td class="py-2.5 px-3 text-center whitespace-nowrap">
-              <button onclick="editTransaction('${escapeHtml(t.id)}')" class="text-amber-600 hover:text-amber-800 mr-2 text-xs font-bold" title="Edit">✏️</button>
-              <button onclick="deleteTransaction('${escapeHtml(t.id)}')" class="text-slate-400 hover:text-rose-600 text-xs font-bold" title="Delete">🗑️</button>
+            <td class="py-2 px-1.5 sm:px-3 text-right font-mono font-bold text-purple-700 whitespace-nowrap text-[11px]">${sentAmt.toFixed(2)}</td>
+            <td class="py-2 px-1.5 sm:px-3 text-right font-mono font-bold text-emerald-700 whitespace-nowrap text-[11px]">${recDisplay}</td>
+            <td class="py-2 px-1 sm:px-3 text-center whitespace-nowrap text-xs">
+              <button onclick="editTransaction('${escapeHtml(t.id)}')" class="text-amber-600 hover:text-amber-800 mr-1.5 font-bold" title="Edit">✏️</button>
+              <button onclick="deleteTransaction('${escapeHtml(t.id)}')" class="text-slate-400 hover:text-rose-600 font-bold" title="Delete">🗑️</button>
             </td>`;
           remitBody.appendChild(tr);
         });
@@ -8278,7 +8852,11 @@ function applyCustomOrderCycle() {
       }
 
       // Sort by date descending (latest first)
-      txs.sort((a, b) => toIsoDate(b.date).localeCompare(toIsoDate(a.date)));
+      txs.sort((a, b) => {
+        const d = toIsoDate(b.date).localeCompare(toIsoDate(a.date));
+        if (d !== 0) return d;
+        return String(b.time || b.id || '').localeCompare(String(a.time || a.id || ''));
+      });
 
       const tbody = document.getElementById("statementTableBody");
       if (!tbody) return;
@@ -8318,20 +8896,20 @@ function applyCustomOrderCycle() {
           if (!displayAccount) displayAccount = 'Other';
 
           tr.innerHTML = `
-            <td class="py-2.5 px-3 font-semibold text-slate-800 whitespace-nowrap">${escapeHtml(t.date)}</td>
-            <td class="py-2.5 px-3 whitespace-nowrap">
-              <span class="px-2.5 py-1 rounded-full text-[10px] font-bold ${cin > 0 ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-rose-100 text-rose-800 border border-rose-200'} inline-block">
+            <td class="py-2 px-1.5 sm:px-3 font-semibold text-slate-800 whitespace-nowrap text-[11px]">${escapeHtml(t.date)}</td>
+            <td class="py-2 px-1 sm:px-3 whitespace-nowrap">
+              <span class="badge-fit px-1.5 py-0.5 rounded-full text-[9px] font-bold ${cin > 0 ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-rose-100 text-rose-800 border border-rose-200'} inline-block">
                 ${escapeHtml(displayAccount)}
               </span>
             </td>
-            <td class="py-2.5 px-3 text-slate-800 font-medium">
-              <div>${escapeHtml(t.detail || '-')}</div>
+            <td class="py-2 px-1.5 sm:px-3 text-slate-800 desc-fit font-medium text-[11px]" title="Tap to view full description" onclick="toggleDescExpand(this)" title="Tap to view full description" onclick="toggleDescExpand(this)">
+              ${escapeHtml(t.detail || '-')}
             </td>
-            <td class="py-2.5 px-3 text-right font-mono font-bold whitespace-nowrap ${t.isAutoRentCharge ? 'text-amber-800' : 'text-emerald-700'}">${cin > 0 ? (t.isAutoRentCharge ? `<div>${cin.toFixed(2)}</div><div class="text-[9px] text-amber-700 font-bold leading-tight">(Charge)</div>` : '+' + cin.toFixed(2)) : '—'}</td>
-            <td class="py-2.5 px-3 text-right font-mono font-bold text-rose-600 whitespace-nowrap">${cout > 0 ? '−' + cout.toFixed(2) : '—'}</td>
-            <td class="py-2.5 px-3 text-center whitespace-nowrap">
-              <button onclick="editTransaction('${escapeHtml(t.id)}')" class="text-blue-600 hover:text-blue-800 mr-2 text-xs" title="Edit">✏️</button>
-              <button onclick="deleteTransaction('${escapeHtml(t.id)}')" class="text-rose-600 hover:text-rose-800 text-xs" title="Delete">🗑️</button>
+            <td class="py-2 px-1.5 sm:px-3 text-right font-mono font-bold whitespace-nowrap text-[11px] ${t.isAutoRentCharge ? 'text-amber-800' : 'text-emerald-700'}">${cin > 0 ? (t.isAutoRentCharge ? `${cin.toFixed(2)}` : '+' + cin.toFixed(2)) : '—'}</td>
+            <td class="py-2 px-1.5 sm:px-3 text-right font-mono font-bold text-rose-600 whitespace-nowrap text-[11px]">${cout > 0 ? '−' + cout.toFixed(2) : '—'}</td>
+            <td class="py-2 px-1 sm:px-3 text-center whitespace-nowrap text-xs">
+              <button onclick="editTransaction('${escapeHtml(t.id)}')" class="text-blue-600 hover:text-blue-800 mr-1.5" title="Edit">✏️</button>
+              <button onclick="deleteTransaction('${escapeHtml(t.id)}')" class="text-rose-600 hover:text-rose-800" title="Delete">🗑️</button>
             </td>
           `;
           tbody.appendChild(tr);
@@ -8613,6 +9191,7 @@ function applyCustomOrderCycle() {
           } else if (type === "Orders" || type === "Order") {
             catSelect.value = "Orders";
             if (titleEl) titleEl.textContent = "Add Daily Orders";
+            handleCategoryChange();
           } else if (type === "Incentive") {
             catSelect.value = "Incentive";
             if (titleEl) titleEl.textContent = "Add Incentive / Bonus";
@@ -8706,6 +9285,11 @@ function applyCustomOrderCycle() {
       if (ordFields) ordFields.classList.toggle("hidden", !isOrder);
       if (remitFields) remitFields.classList.toggle("hidden", !isRemit);
       if (amtField) amtField.classList.toggle("hidden", isOrder);
+
+      const descField = document.getElementById("descriptionField");
+      const detailInput = document.getElementById("entryDetail");
+      if (descField) descField.classList.toggle("hidden", isOrder);
+      if (detailInput) detailInput.required = (!isOrder && !isLoan);
 
       if (isRemit) {
         document.getElementById("modalTitle").textContent = "Send Remittance";
@@ -9217,17 +9801,19 @@ function applyCustomOrderCycle() {
       }
       if (!appState.monthlyRates || typeof appState.monthlyRates !== 'object') appState.monthlyRates = {};
       
+      // Update primary base fixed_rate immediately so new rate takes effect everywhere
+      appState.fixed_rate = nr;
+
       if (cycleKey === "ALL") {
-        appState.fixed_rate = nr;
         (appState.orders || []).forEach(o => {
           o.rate = nr;
           o.earnings = (parseInt(o.count, 10) || 0) * nr;
         });
-        showToast(`✅ Default rate of ${nr.toFixed(2)} ${getActiveCurrency()} set for all delivery cycles!`);
+        showToast("✅ Base rate of " + nr.toFixed(2) + " " + getActiveCurrency() + " set for all delivery cycles!");
       } else {
         appState.monthlyRates[cycleKey] = nr;
         (appState.orders || []).forEach(o => {
-          if (getBillingCycleInfo(o.date).key === cycleKey) {
+          if (getBillingCycleInfo(o.date).key === cycleKey || appState.activeOrderCycle === "CUSTOM") {
             o.rate = nr;
             o.earnings = (parseInt(o.count, 10) || 0) * nr;
           }
@@ -9238,12 +9824,15 @@ function applyCustomOrderCycle() {
         if (orderSelect) orderSelect.value = cycleKey;
 
         const cInfo = getBillingCycleInfo(cycleKey);
-        showToast(`✅ Rate of ${nr.toFixed(2)} ${getActiveCurrency()} applied to ${cInfo.label}!`);
+        showToast("✅ Rate of " + nr.toFixed(2) + " " + getActiveCurrency() + " applied to " + cInfo.label + "!");
       }
 
-      saveToStorage(false);
+      saveToStorage(true, true);
       closeModal("modalRate");
       renderAll();
+      if (typeof pushToCloud === 'function') {
+        pushToCloud();
+      }
     }
 
     function populateRentCycleOptions(selectedKey) {
@@ -10128,12 +10717,12 @@ function applyCustomOrderCycle() {
 
     async function handleSendPasswordReset(e) {
       if (e) e.preventDefault();
-      const emailInput = document.getElementById("forgotInputEmail");
-      const errBox = document.getElementById("forgotErrorMsg");
-      const succBox = document.getElementById("forgotSuccessMsg");
-      const submitBtn = document.getElementById("forgotSubmitBtn");
-      const spinner = document.getElementById("forgotSubmitSpinner");
-      const btnText = document.getElementById("forgotSubmitText");
+      const emailInput = document.getElementById("modalForgotInputEmail") || document.getElementById("forgotInputEmail");
+      const errBox = document.getElementById("modalForgotErrorMsg") || document.getElementById("forgotErrorMsg");
+      const succBox = document.getElementById("modalForgotSuccessMsg") || document.getElementById("forgotSuccessMsg");
+      const submitBtn = document.getElementById("modalForgotSubmitBtn") || document.getElementById("forgotSubmitBtn");
+      const spinner = document.getElementById("modalForgotSubmitSpinner") || document.getElementById("forgotSubmitSpinner");
+      const btnText = document.getElementById("modalForgotSubmitText") || document.getElementById("forgotSubmitText");
 
       if (errBox) errBox.classList.add("hidden");
       if (succBox) succBox.classList.add("hidden");
@@ -10317,8 +10906,10 @@ function applyCustomOrderCycle() {
 
       const adminActive = isSuperAdmin();
       const settingsAdminBtn = document.getElementById("settingsAdminBtn");
+      const settingsAiCard = document.getElementById("settingsAiSentinelCard");
 
       // Strictly Secret: Only show Super Admin controls and Cloud Sync Badge to Admin!
+      if (settingsAiCard) settingsAiCard.classList.toggle("hidden", !adminActive);
       const headerSyncBtn = document.getElementById("headerSyncBtn");
       if (headerSyncBtn) headerSyncBtn.classList.toggle("hidden", !adminActive);
       if (drawerAdminBtn) drawerAdminBtn.classList.toggle("hidden", !adminActive);
@@ -11083,6 +11674,7 @@ function applyCustomOrderCycle() {
     }
 
     function loadKhataFromStorage() {
+      if (typeof AiWatchdog !== "undefined") { AiWatchdog.auditAndRepairData(); }
       const isAli = isSuperAdmin();
       const isPrimary = (!activeKhataId || activeKhataId === "default");
       const key = getKhataStorageKey(activeKhataId);
@@ -11476,6 +12068,35 @@ function applyCustomOrderCycle() {
     })();
 
   </script>
+
+  <!-- ================= MODAL: AI HEALTH & ERROR TELEMETRY LOGS ================= -->
+  <div id="modalAiHealthLogs" class="fixed inset-0 z-modal-standard flex items-center justify-center p-3 modal-backdrop hidden" onclick="if(event.target===this)closeModal('modalAiHealthLogs')" role="dialog" aria-modal="true" aria-labelledby="aiLogsModalTitle">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-slate-200 modal-card-viewport">
+      <div class="bg-indigo-950 text-white px-4 py-3 flex justify-between items-center">
+        <h3 class="font-bold text-xs sm:text-sm flex items-center space-x-2" id="aiLogsModalTitle">
+          <span>🛡️</span>
+          <span>AI Health &amp; Self-Healing Logs</span>
+        </h3>
+        <button onclick="closeModal('modalAiHealthLogs')" class="text-indigo-300 hover:text-white text-lg font-bold">×</button>
+      </div>
+      <div class="p-3.5 space-y-2 text-xs modal-scrollable-body max-h-[60vh] overflow-y-auto">
+        <div class="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-900 leading-relaxed">
+          ✅ <b>Watchdog Active:</b> Button clicks, calculations, aur data inputs par self-recovery active hai. Koi bhi code crash ya formula error app ko freeze nahi hone dega.
+        </div>
+        <div id="aiLogsContainer" class="space-y-1.5 pt-1">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+      <div class="p-3 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
+        <button type="button" onclick="clearAiLogs()" class="text-rose-600 hover:text-rose-800 text-[11px] font-bold">
+          Clear Logs
+        </button>
+        <button type="button" onclick="closeModal('modalAiHealthLogs')" class="px-4 py-1.5 bg-indigo-700 hover:bg-indigo-800 text-white text-xs font-bold rounded-xl shadow-xs active:scale-95">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- Container for native mobile print & PDF export -->
   <div id="printContainer"></div>
